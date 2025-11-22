@@ -27,7 +27,8 @@ export async function PUT(
       offers_receiving,
       is_disabled,
       land_house_status,
-      whatsapp_number
+      whatsapp_number,
+      requires_special_monitoring
     } = body;
     const { memberId } = await params;
 
@@ -73,6 +74,7 @@ export async function PUT(
         is_disabled: is_disabled || false,
         land_house_status,
         whatsapp_number,
+        requires_special_monitoring: requires_special_monitoring || false,
         updated_at: new Date().toISOString()
       })
       .eq('id', memberId)

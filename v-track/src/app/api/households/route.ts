@@ -65,6 +65,7 @@ export async function POST(request: Request) {
         isDisabled: boolean;
         landHouseStatus: string;
         whatsappNumber?: string;
+        requiresSpecialMonitoring?: boolean;
       }) => ({
         household_id: household.id,
         full_name: member.fullName,
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
         is_disabled: member.isDisabled,
         land_house_status: member.landHouseStatus,
         whatsapp_number: member.whatsappNumber,
+        requires_special_monitoring: member.requiresSpecialMonitoring || false,
       }));
 
       const { error: membersError } = await supabase

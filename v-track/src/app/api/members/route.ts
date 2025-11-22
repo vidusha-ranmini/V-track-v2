@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
       offers_receiving,
       is_disabled,
       land_house_status,
-      whatsapp_number
+      whatsapp_number,
+      requires_special_monitoring
     } = body;
 
     // Validate required fields
@@ -125,7 +126,8 @@ export async function POST(request: NextRequest) {
         offers_receiving: Array.isArray(offers_receiving) ? offers_receiving : [offers_receiving].filter(Boolean),
         is_disabled: is_disabled || false,
         land_house_status,
-        whatsapp_number
+        whatsapp_number,
+        requires_special_monitoring: requires_special_monitoring || false
       })
       .select()
       .single();

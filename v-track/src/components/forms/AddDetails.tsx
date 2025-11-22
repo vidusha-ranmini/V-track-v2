@@ -39,6 +39,7 @@ export default function AddDetails() {
     isDisabled: false,
     landHouseStatus: '',
     whatsappNumber: '',
+    requiresSpecialMonitoring: false, // Discreet field for suspicious people
   });
 
   useEffect(() => {
@@ -121,6 +122,7 @@ export default function AddDetails() {
         isDisabled: false,
         landHouseStatus: '',
         whatsappNumber: '',
+        requiresSpecialMonitoring: false,
       });
     }
   };
@@ -515,7 +517,7 @@ export default function AddDetails() {
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -524,6 +526,17 @@ export default function AddDetails() {
                   className="mr-2"
                 />
                 <span className="text-sm text-gray-700">Disabled</span>
+              </label>
+              
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={currentMember.requiresSpecialMonitoring}
+                  onChange={(e) => setCurrentMember({...currentMember, requiresSpecialMonitoring: e.target.checked})}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-600">Requires special community monitoring</span>
+                <span className="ml-2 text-xs text-gray-400 italic">(for enhanced safety protocols)</span>
               </label>
             </div>
 

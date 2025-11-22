@@ -21,6 +21,7 @@ interface Member {
   is_disabled: boolean;
   land_house_status?: string;
   whatsapp_number?: string;
+  requires_special_monitoring?: boolean;
   is_deleted: boolean;
   // Address data from household -> addresses relationship
   address?: string;
@@ -376,7 +377,15 @@ export default function ViewDetails() {
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{member.full_name}</div>
+                      <div className="text-sm font-medium text-gray-900 flex items-center">
+                        {member.full_name}
+                        {member.requires_special_monitoring && (
+                          <span 
+                            className="ml-2 w-2 h-2 bg-orange-400 rounded-full" 
+                            title="Enhanced monitoring protocols apply"
+                          />
+                        )}
+                      </div>
                       <div className="text-sm text-gray-500">{member.name_with_initial}</div>
                       <div className="text-xs text-gray-400">{member.gender}, {member.age} years</div>
                     </div>
@@ -527,6 +536,21 @@ export default function ViewDetails() {
                       </div>
                       <div className="ml-3">
                         <p className="text-sm text-orange-800">This member has special accessibility needs.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {selectedMember.requires_special_monitoring && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex">
+                      <div className="shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-blue-800">Enhanced community monitoring protocols apply.</p>
+                        <p className="text-xs text-blue-600 mt-1">This designation ensures appropriate safety measures and community awareness.</p>
                       </div>
                     </div>
                   </div>
@@ -879,7 +903,7 @@ export default function ViewDetails() {
                   </div>
                 </div>
 
-                <div>
+                <div className="space-y-3">
                   <label className="flex items-center">
                     <input
                       type="checkbox"
@@ -888,6 +912,17 @@ export default function ViewDetails() {
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                     />
                     <span className="ml-2 text-sm text-gray-700">Has accessibility needs</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editingMember.requires_special_monitoring || false}
+                      onChange={(e) => handleEditChange('requires_special_monitoring', e.target.checked)}
+                      className="rounded border-gray-300 text-orange-600 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">Requires enhanced community monitoring</span>
+                    <span className="ml-2 text-xs text-gray-400 italic">(for safety protocols)</span>
                   </label>
                 </div>
               </div>
