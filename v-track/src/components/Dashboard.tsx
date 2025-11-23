@@ -8,11 +8,16 @@ import ViewDetails from './tables/ViewDetails';
 import AddBusiness from './forms/AddBusiness';
 import RoadLamps from './infrastructure/RoadLamps';
 import RoadDetails from './infrastructure/RoadDetails';
+import ActivityLogs from './dashboard/ActivityLogs';
 
-type ActivePage = 'dashboard' | 'add-details' | 'view-details' | 'add-business' | 'road-lamps' | 'road-details';
+type ActivePage = 'dashboard' | 'add-details' | 'view-details' | 'add-business' | 'road-lamps' | 'road-details' | 'activity-logs';
 
 export default function Dashboard() {
   const [activePage, setActivePage] = useState<ActivePage>('dashboard');
+
+  const handlePageChange = (page: string) => {
+    setActivePage(page as ActivePage);
+  };
 
   const renderActivePage = () => {
     switch (activePage) {
@@ -28,6 +33,8 @@ export default function Dashboard() {
         return <RoadLamps />;
       case 'road-details':
         return <RoadDetails />;
+      case 'activity-logs':
+        return <ActivityLogs />;
       default:
         return <DashboardOverview />;
     }
@@ -35,7 +42,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar activePage={activePage} onPageChange={setActivePage} />
+      <Sidebar activePage={activePage} onPageChange={handlePageChange} />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {renderActivePage()}

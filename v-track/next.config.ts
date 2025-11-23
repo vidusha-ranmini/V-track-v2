@@ -12,17 +12,8 @@ const nextConfig: NextConfig = {
     return config;
   },
   
-  // Additional development optimizations
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-  },
+  // Empty turbopack config to silence the warning
+  turbopack: {},
 };
 
 export default nextConfig;

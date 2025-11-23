@@ -49,6 +49,36 @@ export async function checkAuth(): Promise<boolean> {
 
 export function logout(): void {
   if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      // Try to log logout activity if possible
+      try {
+        const user = verifyToken(token);
+        if (user) {
+          // Make async call to log logout (fire and forget)
+          fetch('/api/activity-logs', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              username: user.username,
+              action_type: 'logout',
+              description: `User ${user.username} logged out`,
+              metadata: {
+                logout_time: new Date().toISOString()
+              }
+            })
+          }).catch(error => {
+            console.warn('Failed to log logout activity:', error);
+          });
+        }
+      } catch (error) {
+        console.warn('Error during logout logging:', error);
+      }
+    }
+    
     localStorage.removeItem('auth_token');
   }
 }

@@ -17,6 +17,15 @@ export const createAdminClient = () => {
   });
 };
 
+// Admin client for backend operations (server-side only)
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+
 // Database types
 export interface Road {
   id: string;
@@ -109,4 +118,17 @@ export interface SubSubRoad {
   development_status: 'developed' | 'undeveloped';
   created_at: string;
   is_deleted: boolean;
+}
+
+export interface UserActivityLog {
+  id: string;
+  username: string;
+  action_type: 'login' | 'logout' | 'create' | 'update' | 'delete' | 'view' | 'export';
+  resource_type?: string;
+  resource_id?: string;
+  description?: string;
+  ip_address?: string;
+  user_agent?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Users, Home, Building, Lightbulb, PieChart, BarChart3, TrendingUp } from 'lucide-react';
+import ActivityLogs from './ActivityLogs';
 
 interface DashboardStats {
   totalMembers: number;
@@ -347,6 +348,11 @@ export default function DashboardOverview() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Recent Activity Logs Section */}
+      <div className="mt-8">
+        <ActivityLogs showRecentLogsOnly={true} maxItems={5} />
       </div>
     </div>
   );

@@ -5,8 +5,9 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ roadId: string }> }
 ) {
+  const { roadId } = await params;
+  
   try {
-    const { roadId } = await params;
     // Check if Supabase is configured
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     

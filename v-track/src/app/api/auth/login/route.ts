@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { logUserActivity, getClientIP, getUserAgent } from '../../../../lib/activityLogger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +85,24 @@ export async function POST(request: NextRequest) {
 
     if (!isValidPassword) {
       console.log('❌ Invalid password');
+      
+      // Log failed login attempt
+      const clientIP = getClientIP(request);
+      const userAgent = getUserAgent(request);
+      
+      await logUserActivity({
+        username,
+        action_type: 'login',
+        description: `Failed login attempt for user ${username}`,
+        ip_address: clientIP,
+        user_agent: userAgent,
+        metadata: {
+          login_time: new Date().toISOString(),
+          success: false,
+          reason: 'invalid_password'
+        }
+      });
+      
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -93,6 +112,22 @@ export async function POST(request: NextRequest) {
     // Generate token
     const user = { username, isAdmin: true as const };
     const token = jwt.sign(user, jwtSecret, { expiresIn: '24h' });
+    
+    // Log successful login activity
+    const clientIP = getClientIP(request);
+    const userAgent = getUserAgent(request);
+    
+    await logUserActivity({
+      username,
+      action_type: 'login',
+      description: `User ${username} logged in successfully`,
+      ip_address: clientIP,
+      user_agent: userAgent,
+      metadata: {
+        login_time: new Date().toISOString(),
+        success: true
+      }
+    });
     
     console.log('✅ Login successful');
     return NextResponse.json({

@@ -2,6 +2,26 @@
 
 import { useState, useEffect } from 'react';
 
+interface MemberData {
+  id: number;
+  fullName: string;
+  nameWithInitial: string;
+  memberType: string;
+  nic: string;
+  gender: string;
+  age: number;
+  occupation: string;
+  schoolName: string;
+  grade: string;
+  universityName: string;
+  otherOccupation: string;
+  offersReceiving: string[];
+  isDisabled: boolean;
+  landHouseStatus: string;
+  whatsappNumber: string;
+  requiresSpecialMonitoring: boolean;
+}
+
 export default function AddDetails() {
   const [step, setStep] = useState(1);
   const [homeType, setHomeType] = useState('');
@@ -9,9 +29,9 @@ export default function AddDetails() {
   const [selectedSubRoad, setSelectedSubRoad] = useState('');
   const [selectedAddress, setSelectedAddress] = useState('');
   
-  const [roads, setRoads] = useState([]);
-  const [subRoads, setSubRoads] = useState([]);
-  const [addresses, setAddresses] = useState([]);
+  const [roads, setRoads] = useState<Array<{id: string, name: string}>>([]);
+  const [subRoads, setSubRoads] = useState<Array<{id: string, name: string}>>([]);
+  const [addresses, setAddresses] = useState<Array<{id: string, address: string}>>([]);
 
   // Home details
   const [homeDetails, setHomeDetails] = useState({
@@ -22,8 +42,9 @@ export default function AddDetails() {
   });
 
   // Members array
-  const [members, setMembers] = useState([]);
-  const [currentMember, setCurrentMember] = useState({
+  const [members, setMembers] = useState<MemberData[]>([]);
+  const [currentMember, setCurrentMember] = useState<MemberData>({
+    id: 0,
     fullName: '',
     nameWithInitial: '',
     memberType: 'permanent',
@@ -107,6 +128,7 @@ export default function AddDetails() {
     if (currentMember.fullName && currentMember.nic) {
       setMembers([...members, { ...currentMember, id: Date.now() }]);
       setCurrentMember({
+        id: 0,
         fullName: '',
         nameWithInitial: '',
         memberType: 'permanent',
@@ -173,10 +195,6 @@ export default function AddDetails() {
     'self_employment', 'no', 'other'
   ];
 
-  const offers = [
-    'aswasuma_adult_offers', 'mahapola', 'grade_5_scholarship'
-  ];
-
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Add Household Details</h1>
@@ -216,7 +234,7 @@ export default function AddDetails() {
                 className="w-full p-2 border border-gray-300 rounded-md"
               >
                 <option value="">Select Road</option>
-                {roads.map((road: any) => (
+                {roads.map((road: {id: string, name: string}) => (
                   <option key={road.id} value={road.id}>{road.name}</option>
                 ))}
               </select>
@@ -238,7 +256,7 @@ export default function AddDetails() {
                 disabled={!selectedRoad}
               >
                 <option value="">Select Sub Road</option>
-                {subRoads.map((subRoad: any) => (
+                {subRoads.map((subRoad: {id: string, name: string}) => (
                   <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
                 ))}
               </select>
@@ -255,7 +273,7 @@ export default function AddDetails() {
                 disabled={!selectedSubRoad}
               >
                 <option value="">Select Address</option>
-                {addresses.map((address: any) => (
+                {addresses.map((address: {id: string, address: string}) => (
                   <option key={address.id} value={address.id}>{address.address}</option>
                 ))}
               </select>
@@ -572,7 +590,7 @@ export default function AddDetails() {
                     </tr>
                   </thead>
                   <tbody>
-                    {members.map((member: any) => (
+                    {members.map((member: MemberData) => (
                       <tr key={member.id} className="border-t">
                         <td className="px-4 py-2">{member.fullName}</td>
                         <td className="px-4 py-2">{member.nic}</td>
