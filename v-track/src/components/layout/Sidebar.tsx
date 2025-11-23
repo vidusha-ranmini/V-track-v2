@@ -25,7 +25,7 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
     { id: 'add-business', label: 'Add Business', icon: Building },
     { id: 'road-lamps', label: 'Road Lamps', icon: Lightbulb },
     { id: 'road-details', label: 'Road Details', icon: MapPin },
-    { id: 'activity-logs', label: 'Activity Logs', icon: Activity },
+    // { id: 'activity-logs', label: 'Activity Logs', icon: Activity },
   ];
 
   const handleLogout = () => {

@@ -23,14 +23,26 @@ CREATE INDEX IF NOT EXISTS idx_user_activity_logs_resource ON user_activity_logs
 -- Row Level Security
 ALTER TABLE user_activity_logs ENABLE ROW LEVEL SECURITY;
 
--- Policy: Admin can view all activity logs
-CREATE POLICY "Admin can view all activity logs" 
+-- Policy: Allow system to insert activity logs (for server-side logging)
+CREATE POLICY "Allow system to insert activity logs" 
+ON user_activity_logs FOR INSERT 
+TO public 
+WITH CHECK (true);
+
+-- Policy: Allow service role to insert activity logs
+CREATE POLICY "Allow service role to insert activity logs" 
+ON user_activity_logs FOR INSERT 
+TO service_role 
+WITH CHECK (true);
+
+-- Policy: Allow service role to select all activity logs (for API queries)
+CREATE POLICY "Allow service role to select all activity logs" 
+ON user_activity_logs FOR SELECT 
+TO service_role 
+USING (true);
+
+-- Policy: Allow authenticated users to view activity logs
+CREATE POLICY "Allow authenticated users to view activity logs" 
 ON user_activity_logs FOR SELECT 
 TO authenticated 
 USING (true);
-
--- Policy: Only system can insert activity logs
-CREATE POLICY "System can insert activity logs" 
-ON user_activity_logs FOR INSERT 
-TO authenticated 
-WITH CHECK (true);
