@@ -2,13 +2,33 @@
 
 import { useState, useEffect } from 'react';
 
+interface Member {
+  id?: number;
+  fullName: string;
+  nameWithInitial: string;
+  memberType: string;
+  nic: string;
+  gender: string;
+  age: number;
+  occupation: string;
+  schoolName: string;
+  grade: string;
+  universityName: string;
+  otherOccupation: string;
+  offersReceiving: string[];
+  isDisabled: boolean;
+  landHouseStatus: string;
+  whatsappNumber: string;
+  requiresSpecialMonitoring: boolean;
+}
+
 export default function AddDetails() {
   const [step, setStep] = useState(1);
   const [homeType, setHomeType] = useState('');
   const [selectedRoad, setSelectedRoad] = useState('');
   const [selectedSubRoad, setSelectedSubRoad] = useState('');
   const [selectedAddress, setSelectedAddress] = useState('');
-  
+
   const [roads, setRoads] = useState([]);
   const [subRoads, setSubRoads] = useState([]);
   const [addresses, setAddresses] = useState([]);
@@ -22,8 +42,8 @@ export default function AddDetails() {
   });
 
   // Members array
-  const [members, setMembers] = useState([]);
-  const [currentMember, setCurrentMember] = useState({
+  const [members, setMembers] = useState<Member[]>([]);
+  const [currentMember, setCurrentMember] = useState<Member>({
     fullName: '',
     nameWithInitial: '',
     memberType: 'permanent',
@@ -169,7 +189,7 @@ export default function AddDetails() {
 
   const occupations = [
     'student', 'university_student', 'business', 'doctor', 'teacher',
-    'engineer', 'accountant', 'nurse', 'farmer', 'abroad', 
+    'engineer', 'accountant', 'nurse', 'farmer', 'abroad',
     'self_employment', 'no', 'other'
   ];
 
@@ -184,7 +204,7 @@ export default function AddDetails() {
       {step === 1 && (
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <h2 className="text-xl font-semibold mb-4">Step 1: Home Selection</h2>
-          
+
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Home Type
@@ -271,7 +291,7 @@ export default function AddDetails() {
                 type="number"
                 min="1"
                 value={homeDetails.numberOfMembers}
-                onChange={(e) => setHomeDetails({...homeDetails, numberOfMembers: parseInt(e.target.value)})}
+                onChange={(e) => setHomeDetails({ ...homeDetails, numberOfMembers: parseInt(e.target.value) })}
                 className="w-full p-2 border border-gray-300 rounded-md"
               />
             </div>
@@ -283,7 +303,7 @@ export default function AddDetails() {
               <input
                 type="text"
                 value={homeDetails.assessmentNumber}
-                onChange={(e) => setHomeDetails({...homeDetails, assessmentNumber: e.target.value})}
+                onChange={(e) => setHomeDetails({ ...homeDetails, assessmentNumber: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md"
               />
             </div>
@@ -294,7 +314,7 @@ export default function AddDetails() {
               </label>
               <select
                 value={homeDetails.residentType}
-                onChange={(e) => setHomeDetails({...homeDetails, residentType: e.target.value})}
+                onChange={(e) => setHomeDetails({ ...homeDetails, residentType: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md"
               >
                 <option value="">Select Type</option>
@@ -309,7 +329,7 @@ export default function AddDetails() {
               </label>
               <select
                 value={homeDetails.wasteDisposal}
-                onChange={(e) => setHomeDetails({...homeDetails, wasteDisposal: e.target.value})}
+                onChange={(e) => setHomeDetails({ ...homeDetails, wasteDisposal: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md"
               >
                 <option value="">Select Method</option>
@@ -335,7 +355,7 @@ export default function AddDetails() {
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <h2 className="text-xl font-semibold mb-4">Step 2: Add Member Details</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -344,7 +364,7 @@ export default function AddDetails() {
                 <input
                   type="text"
                   value={currentMember.fullName}
-                  onChange={(e) => setCurrentMember({...currentMember, fullName: e.target.value})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, fullName: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -356,7 +376,7 @@ export default function AddDetails() {
                 <input
                   type="text"
                   value={currentMember.nameWithInitial}
-                  onChange={(e) => setCurrentMember({...currentMember, nameWithInitial: e.target.value})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, nameWithInitial: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -367,7 +387,7 @@ export default function AddDetails() {
                 </label>
                 <select
                   value={currentMember.memberType}
-                  onChange={(e) => setCurrentMember({...currentMember, memberType: e.target.value})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, memberType: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="permanent">Permanent</option>
@@ -393,7 +413,7 @@ export default function AddDetails() {
                 </label>
                 <select
                   value={currentMember.gender}
-                  onChange={(e) => setCurrentMember({...currentMember, gender: e.target.value})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, gender: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="">Select Gender</option>
@@ -421,7 +441,7 @@ export default function AddDetails() {
                 </label>
                 <select
                   value={currentMember.occupation}
-                  onChange={(e) => setCurrentMember({...currentMember, occupation: e.target.value})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, occupation: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="">Select Occupation</option>
@@ -440,7 +460,7 @@ export default function AddDetails() {
                     <input
                       type="text"
                       value={currentMember.schoolName}
-                      onChange={(e) => setCurrentMember({...currentMember, schoolName: e.target.value})}
+                      onChange={(e) => setCurrentMember({ ...currentMember, schoolName: e.target.value })}
                       className="w-full p-2 border border-gray-300 rounded-md"
                     />
                   </div>
@@ -453,7 +473,7 @@ export default function AddDetails() {
                       min="1"
                       max="13"
                       value={currentMember.grade}
-                      onChange={(e) => setCurrentMember({...currentMember, grade: e.target.value})}
+                      onChange={(e) => setCurrentMember({ ...currentMember, grade: e.target.value })}
                       className="w-full p-2 border border-gray-300 rounded-md"
                     />
                   </div>
@@ -468,7 +488,7 @@ export default function AddDetails() {
                   <input
                     type="text"
                     value={currentMember.universityName}
-                    onChange={(e) => setCurrentMember({...currentMember, universityName: e.target.value})}
+                    onChange={(e) => setCurrentMember({ ...currentMember, universityName: e.target.value })}
                     className="w-full p-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -482,7 +502,7 @@ export default function AddDetails() {
                   <input
                     type="text"
                     value={currentMember.otherOccupation}
-                    onChange={(e) => setCurrentMember({...currentMember, otherOccupation: e.target.value})}
+                    onChange={(e) => setCurrentMember({ ...currentMember, otherOccupation: e.target.value })}
                     className="w-full p-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -495,7 +515,7 @@ export default function AddDetails() {
                 <input
                   type="tel"
                   value={currentMember.whatsappNumber}
-                  onChange={(e) => setCurrentMember({...currentMember, whatsappNumber: e.target.value})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, whatsappNumber: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -506,7 +526,7 @@ export default function AddDetails() {
                 </label>
                 <select
                   value={currentMember.landHouseStatus}
-                  onChange={(e) => setCurrentMember({...currentMember, landHouseStatus: e.target.value})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, landHouseStatus: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="">Select Status</option>
@@ -522,17 +542,17 @@ export default function AddDetails() {
                 <input
                   type="checkbox"
                   checked={currentMember.isDisabled}
-                  onChange={(e) => setCurrentMember({...currentMember, isDisabled: e.target.checked})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, isDisabled: e.target.checked })}
                   className="mr-2"
                 />
                 <span className="text-sm text-gray-700">Disabled</span>
               </label>
-              
+
               <label className="flex items-center">
                 <input
                   type="checkbox"
                   checked={currentMember.requiresSpecialMonitoring}
-                  onChange={(e) => setCurrentMember({...currentMember, requiresSpecialMonitoring: e.target.checked})}
+                  onChange={(e) => setCurrentMember({ ...currentMember, requiresSpecialMonitoring: e.target.checked })}
                   className="mr-2"
                 />
                 <span className="text-sm text-gray-600">Requires special community monitoring</span>

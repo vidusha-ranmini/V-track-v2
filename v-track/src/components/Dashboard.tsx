@@ -14,6 +14,10 @@ type ActivePage = 'dashboard' | 'add-details' | 'view-details' | 'add-business' 
 export default function Dashboard() {
   const [activePage, setActivePage] = useState<ActivePage>('dashboard');
 
+  const handlePageChange = (page: string) => {
+    setActivePage(page as ActivePage);
+  };
+
   const renderActivePage = () => {
     switch (activePage) {
       case 'dashboard':
@@ -35,7 +39,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar activePage={activePage} onPageChange={setActivePage} />
+      <Sidebar activePage={activePage} onPageChange={handlePageChange} />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {renderActivePage()}
