@@ -6,11 +6,10 @@ export async function GET(
   { params }: { params: Promise<{ roadId: string; subRoadId: string }> }
 ) {
   const { roadId, subRoadId } = await params;
-  
   try {
     // Check if Supabase is configured
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    
+
     if (!supabaseUrl || supabaseUrl === 'your_supabase_url_here') {
       // Return mock data for testing
       const filteredAddresses = mockAddresses.filter(
@@ -22,7 +21,7 @@ export async function GET(
     // If Supabase is configured, use the actual implementation
     const { createAdminClient } = await import('@/lib/supabase');
     const supabase = createAdminClient();
-    
+
     const { data: addresses, error } = await supabase
       .from('addresses')
       .select('*')
