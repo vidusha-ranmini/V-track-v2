@@ -61,7 +61,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+      <div className="fixed top-4 right-4 z-50 space-y-2 w-96">
         {toasts.map(toast => (
           <ToastNotification
             key={toast.id}
@@ -127,19 +127,19 @@ function ToastNotification({ toast, onRemove }: { toast: Toast; onRemove: () => 
           ? 'translate-x-0 opacity-100' 
           : 'translate-x-full opacity-0'
         }
-        max-w-sm w-full
+        w-full min-w-0 shadow-lg
       `}
     >
       <div className="flex items-start">
         <div className="flex-shrink-0">
           {getIcon()}
         </div>
-        <div className="ml-3 w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-900">
+        <div className="ml-3 flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 break-words">
             {toast.title}
           </p>
           {toast.message && (
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-gray-600 break-words">
               {toast.message}
             </p>
           )}
