@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Lightbulb, Plus, Edit, Trash2, Search, Filter, MapPin, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface RoadLamp {
   id: string;
