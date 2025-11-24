@@ -57,6 +57,7 @@ export async function POST(request: Request) {
         gender: string;
         age: number;
         occupation: string;
+        workplace?: string;
         schoolName?: string;
         grade?: string;
         universityName?: string;
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         gender: member.gender,
         age: member.age,
         occupation: member.occupation,
+        workplace: member.workplace,
         school_name: member.schoolName,
         grade: member.grade ? parseInt(member.grade) : null,
         university_name: member.universityName,

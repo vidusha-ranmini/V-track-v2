@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Filter, Download, Edit, Trash2, X, User, Phone, MapPin, Briefcase, Calendar, Home } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Member {
   id: string;
@@ -41,6 +43,8 @@ interface Member {
 }
 
 export default function ViewDetails() {
+  const { showSuccess, showError } = useToast();
+  const { confirm } = useConfirmDialog();
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,7 +126,7 @@ export default function ViewDetails() {
       setShowEditModal(true);
       setShowModal(false); // Close details modal
     } else {
-      alert('Member not found. Please refresh the page and try again.');
+      showError('Member Not Found', 'Member not found. Please refresh the page and try again.');
     }
   };
 
@@ -131,14 +135,25 @@ export default function ViewDetails() {
     const member = members.find(m => m.id === memberId);
     const memberName = member ? member.full_name : 'this member';
     
-    if (confirm(`Are you sure you want to delete ${memberName}?\n\nThis action cannot be undone.`)) {
+    const confirmed = await confirm({
+      title: 'Delete Member',
+      message: `Are you sure you want to delete ${memberName}?\n\nThis action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+    
+    if (confirmed) {
       try {
         const response = await fetch(`/api/members/${memberId}`, {
           method: 'DELETE',
         });
         
         if (response.ok) {
-          alert(`${memberName} has been successfully deleted.`);
+          showSuccess(
+            'Member Deleted',
+            `${memberName} has been successfully removed from the system.`
+          );
           // Refresh the members list
           fetchMembers();
           // Close modal if the deleted member was being viewed
@@ -147,11 +162,17 @@ export default function ViewDetails() {
           }
         } else {
           const errorData = await response.json();
-          alert(`Failed to delete member: ${errorData.error || 'Unknown error'}`);
+          showError(
+            'Deletion Failed',
+            `Failed to delete member: ${errorData.error || 'Unknown error'}`
+          );
         }
       } catch (error) {
         console.error('Error deleting member:', error);
-        alert('Failed to delete member. Please check your internet connection and try again.');
+        showError(
+          'Network Error',
+          'Failed to delete member. Please check your internet connection and try again.'
+        );
       }
     }
   };
@@ -187,14 +208,23 @@ export default function ViewDetails() {
         const updatedMember = await response.json();
         setMembers(members.map(m => m.id === editingMember.id ? updatedMember : m));
         closeEditModal();
-        alert('Member information updated successfully!');
+        showSuccess(
+          'Member Updated',
+          'Member information has been updated successfully.'
+        );
       } else {
         const errorData = await response.json();
-        alert(`Failed to update member: ${errorData.error || 'Unknown error'}`);
+        showError(
+          'Update Failed',
+          `Failed to update member: ${errorData.error || 'Unknown error'}`
+        );
       }
     } catch (error) {
       console.error('Error updating member:', error);
-      alert('Failed to update member. Please check your internet connection and try again.');
+      showError(
+        'Network Error',
+        'Failed to update member. Please check your internet connection and try again.'
+      );
     }
   };
 

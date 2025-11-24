@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Building, MapPin, User, Tag, Save, X, Search, Filter, Download, Edit, Trash2, Eye, Phone, Calendar } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface Business {
   id?: string;
@@ -33,6 +34,7 @@ interface SubRoad {
 
 
 export default function AddBusiness() {
+  const { showSuccess, showError } = useToast();
   const [businessData, setBusinessData] = useState<Business>({
     business_name: '',
     business_owner: '',
@@ -175,16 +177,25 @@ export default function AddBusiness() {
       });
 
       if (response.ok) {
-        alert(editingBusiness ? 'Business updated successfully!' : 'Business registered successfully!');
+        showSuccess(
+          editingBusiness ? 'Business Updated' : 'Business Registered',
+          `Business has been ${editingBusiness ? 'updated' : 'registered'} successfully.`
+        );
         resetForm();
         fetchBusinesses();
       } else {
         const error = await response.json();
-        alert('Error: ' + (error.error || 'Failed to save business'));
+        showError(
+          'Operation Failed',
+          error.error || 'Failed to save business'
+        );
       }
     } catch (error) {
       console.error('Error submitting business:', error);
-      alert('Error saving business');
+      showError(
+        'Network Error',
+        'An error occurred while saving the business. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }

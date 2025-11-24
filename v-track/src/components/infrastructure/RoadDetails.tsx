@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { MapPin, Plus, Edit, Trash2, Building2, TreePine, Home } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Road {
   id: string;
@@ -41,6 +43,8 @@ interface Address {
 type ActiveTab = 'roads' | 'sub-roads' | 'sub-sub-roads' | 'addresses';
 
 export default function RoadDetails() {
+  const { showSuccess, showError } = useToast();
+  const { confirm } = useConfirmDialog();
   const [activeTab, setActiveTab] = useState<ActiveTab>('roads');
   const [roads, setRoads] = useState<Road[]>([]);
   const [subRoads, setSubRoads] = useState<SubRoad[]>([]);
@@ -64,6 +68,7 @@ export default function RoadDetails() {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
+    member: '',
     development_status: 'undeveloped' as 'developed' | 'undeveloped'
   });
 
@@ -172,6 +177,7 @@ export default function RoadDetails() {
           endpoint = editingItem ? `/api/addresses/${editingItem}` : '/api/addresses';
           payload = {
             address: formData.address,
+            member: formData.member,
             road_id: selectedRoad,
             sub_road_id: selectedSubRoad
           };
@@ -185,23 +191,42 @@ export default function RoadDetails() {
       });
 
       if (response.ok) {
-        alert(`${activeTab} ${editingItem ? 'updated' : 'added'} successfully!`);
+        const itemType = activeTab.slice(0, -1).replace('-', ' ');
+        showSuccess(
+          `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} ${editingItem ? 'Updated' : 'Added'}`,
+          `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} has been ${editingItem ? 'updated' : 'added'} successfully.`
+        );
         resetForm();
         fetchAllData();
       } else {
         const error = await response.json();
-        alert('Error: ' + (error.error || 'Failed to save'));
+        showError(
+          'Operation Failed',
+          error.error || `Failed to ${editingItem ? 'update' : 'add'} ${activeTab.slice(0, -1)}`
+        );
       }
     } catch (error) {
       console.error('Error submitting:', error);
-      alert('Error saving data');
+      showError(
+        'Submission Error',
+        'An unexpected error occurred while saving. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async (id: string, type: ActiveTab) => {
-    if (confirm(`Are you sure you want to delete this ${type.slice(0, -1)}?`)) {
+    const itemType = type.slice(0, -1).replace('-', ' ');
+    const confirmed = await confirm({
+      title: `Delete ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
+      message: `Are you sure you want to delete this ${itemType}?\n\nThis action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+    
+    if (confirmed) {
       try {
         let endpoint = '';
         switch (type) {
@@ -222,21 +247,31 @@ export default function RoadDetails() {
         const response = await fetch(endpoint, { method: 'DELETE' });
         
         if (response.ok) {
-          alert(`${type.slice(0, -1)} deleted successfully!`);
+          const itemType = type.slice(0, -1).replace('-', ' ');
+          showSuccess(
+            'Item Deleted',
+            `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} has been deleted successfully.`
+          );
           fetchAllData();
         } else {
           const error = await response.json();
-          alert('Error: ' + (error.error || `Failed to delete ${type.slice(0, -1)}`));
+          showError(
+            'Deletion Failed',
+            error.error || `Failed to delete ${type.slice(0, -1)}`
+          );
         }
       } catch (error) {
         console.error('Error deleting:', error);
-        alert(`Failed to delete ${type.slice(0, -1)}. Please try again.`);
+        showError(
+          'Deletion Error',
+          `Failed to delete ${type.slice(0, -1)}. Please try again.`
+        );
       }
     }
   };
 
   const resetForm = () => {
-    setFormData({ name: '', address: '', development_status: 'undeveloped' });
+    setFormData({ name: '', address: '', member: '', development_status: 'undeveloped' });
     setEditingItem(null);
     setShowAddForm(false);
     setSelectedRoad('');
@@ -245,7 +280,7 @@ export default function RoadDetails() {
 
   const handleEdit = (item: any, type: ActiveTab) => {
     if (type === 'addresses') {
-      setFormData({ ...formData, address: item.address, name: '' });
+      setFormData({ ...formData, address: item.address, member: item.member || '', name: '' });
     } else {
       setFormData({ 
         ...formData, 
@@ -540,6 +575,22 @@ export default function RoadDetails() {
                       placeholder={activeTab === 'addresses' ? 'Enter address' : 'Enter name'}
                     />
                   </div>
+
+                  {/* Member Input for Addresses */}
+                  {activeTab === 'addresses' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Member Name (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.member}
+                        onChange={(e) => setFormData({...formData, member: e.target.value})}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter member name"
+                      />
+                    </div>
+                  )}
 
                   {/* Development Status for Sub Sub Roads */}
                   {activeTab === 'sub-sub-roads' && (

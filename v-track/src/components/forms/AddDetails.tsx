@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/Toast';
 
 interface Member {
   id?: number;
@@ -11,6 +12,7 @@ interface Member {
   gender: string;
   age: number;
   occupation: string;
+  workplace: string;
   schoolName: string;
   grade: string;
   universityName: string;
@@ -23,6 +25,7 @@ interface Member {
 }
 
 export default function AddDetails() {
+  const { showSuccess, showError } = useToast();
   const [step, setStep] = useState(1);
   const [homeType, setHomeType] = useState('');
   const [selectedRoad, setSelectedRoad] = useState('');
@@ -51,6 +54,7 @@ export default function AddDetails() {
     gender: '',
     age: 0,
     occupation: '',
+    workplace: '',
     schoolName: '',
     grade: '',
     universityName: '',
@@ -135,6 +139,7 @@ export default function AddDetails() {
         gender: '',
         age: 0,
         occupation: '',
+        workplace: '',
         schoolName: '',
         grade: '',
         universityName: '',
@@ -165,7 +170,10 @@ export default function AddDetails() {
       });
 
       if (response.ok) {
-        alert('Household details saved successfully!');
+        showSuccess(
+          'Household Saved Successfully',
+          `Household with ${members.length} member${members.length !== 1 ? 's' : ''} has been saved to the database.`
+        );
         // Reset form
         setStep(1);
         setHomeType('');
@@ -180,11 +188,18 @@ export default function AddDetails() {
         });
         setMembers([]);
       } else {
-        alert('Error saving household details');
+        const errorData = await response.json().catch(() => ({}));
+        showError(
+          'Failed to Save Household',
+          errorData.error || 'An error occurred while saving household details. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Error submitting household:', error);
-      alert('Error saving household details');
+      showError(
+        'Submission Error',
+        'A network error occurred while saving. Please check your connection and try again.'
+      );
     }
   };
 
@@ -448,6 +463,22 @@ export default function AddDetails() {
                 </select>
               </div>
 
+              {/* Workplace field for working occupations */}
+              {currentMember.occupation && !['student', 'university_student', 'no', 'abroad'].includes(currentMember.occupation) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Workplace
+                  </label>
+                  <input
+                    type="text"
+                    value={currentMember.workplace}
+                    onChange={(e) => setCurrentMember({ ...currentMember, workplace: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    placeholder="Enter workplace name or location"
+                  />
+                </div>
+              )}
+
               {currentMember.occupation === 'student' && (
                 <>
                   <div>
@@ -585,19 +616,21 @@ export default function AddDetails() {
                       <th className="px-4 py-2 text-left">NIC</th>
                       <th className="px-4 py-2 text-left">Age</th>
                       <th className="px-4 py-2 text-left">Occupation</th>
+                      <th className="px-4 py-2 text-left">Workplace</th>
                       <th className="px-4 py-2 text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {members.map((member: MemberData) => (
+                    {members.map((member: Member) => (
                       <tr key={member.id} className="border-t">
                         <td className="px-4 py-2">{member.fullName}</td>
                         <td className="px-4 py-2">{member.nic}</td>
                         <td className="px-4 py-2">{member.age}</td>
                         <td className="px-4 py-2">{member.occupation}</td>
+                        <td className="px-4 py-2">{member.workplace || '-'}</td>
                         <td className="px-4 py-2">
                           <button
-                            onClick={() => removeMember(member.id)}
+                            onClick={() => removeMember(member.id!)}
                             className="text-red-600 hover:text-red-800"
                           >
                             Remove

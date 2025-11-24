@@ -11,23 +11,30 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { address, road_id, sub_road_id } = body;
+    const { address, road_id, sub_road_id, member } = body;
     const { addressId } = await params;
 
-    if (!address || !road_id || !sub_road_id) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!address || !road_id) {
+      return NextResponse.json({ error: 'Address and road_id are required' }, { status: 400 });
     }
 
     // Check if address already exists for this location (excluding current)
-    const { data: existing } = await supabase
+    let existingQuery = supabase
       .from('addresses')
       .select('id')
       .eq('address', address)
       .eq('road_id', road_id)
-      .eq('sub_road_id', sub_road_id)
       .eq('is_deleted', false)
-      .neq('id', addressId)
-      .single();
+      .neq('id', addressId);
+
+    // Handle sub_road_id filtering for duplicate check
+    if (sub_road_id) {
+      existingQuery = existingQuery.eq('sub_road_id', sub_road_id);
+    } else {
+      existingQuery = existingQuery.is('sub_road_id', null);
+    }
+
+    const { data: existing } = await existingQuery.maybeSingle();
 
     if (existing) {
       return NextResponse.json({ error: 'Address already exists for this location' }, { status: 409 });
@@ -38,7 +45,8 @@ export async function PUT(
       .update({
         address,
         road_id,
-        sub_road_id
+        sub_road_id: sub_road_id || null,
+        member: member || null
       })
       .eq('id', addressId)
       .select()

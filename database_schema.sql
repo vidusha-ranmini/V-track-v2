@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS sub_sub_roads (
 CREATE TABLE IF NOT EXISTS addresses (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     address TEXT NOT NULL,
+    member TEXT,
     road_id UUID REFERENCES roads(id) ON DELETE CASCADE,
     sub_road_id UUID REFERENCES sub_roads(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -70,6 +71,7 @@ CREATE TABLE IF NOT EXISTS members (
     gender TEXT CHECK (gender IN ('male', 'female', 'other')) NOT NULL,
     age INTEGER NOT NULL CHECK (age >= 0 AND age <= 150),
     occupation TEXT NOT NULL,
+    workplace TEXT,
     school_name TEXT,
     grade INTEGER CHECK (grade >= 1 AND grade <= 13),
     university_name TEXT,

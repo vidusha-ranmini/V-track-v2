@@ -38,6 +38,7 @@ interface Address {
 }
 
 export default function RoadLamps() {
+  const { showSuccess, showError } = useToast();
   const [lamps, setLamps] = useState<RoadLamp[]>([]);
   const [filteredLamps, setFilteredLamps] = useState<RoadLamp[]>([]);
   const [roads, setRoads] = useState<Road[]>([]);
@@ -178,16 +179,25 @@ export default function RoadLamps() {
       });
 
       if (response.ok) {
-        alert(editingLamp ? 'Road lamp updated successfully!' : 'Road lamp added successfully!');
+        showSuccess(
+          editingLamp ? 'Road Lamp Updated' : 'Road Lamp Added',
+          `Road lamp has been ${editingLamp ? 'updated' : 'added'} successfully.`
+        );
         resetForm();
         fetchLamps();
       } else {
         const error = await response.json();
-        alert('Error: ' + (error.error || 'Failed to save road lamp'));
+        showError(
+          'Save Failed',
+          error.error || 'Failed to save road lamp'
+        );
       }
     } catch (error) {
       console.error('Error submitting road lamp:', error);
-      alert('Error saving road lamp');
+      showError(
+        'Network Error',
+        'An error occurred while saving the road lamp. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
