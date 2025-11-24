@@ -517,7 +517,7 @@ export default function RoadDetails() {
               </h3>
               
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Parent Road Selection */}
                   {(activeTab === 'sub-roads' || activeTab === 'sub-sub-roads' || activeTab === 'addresses') && (
                     <div>
@@ -539,22 +539,26 @@ export default function RoadDetails() {
                   {/* Parent Sub Road Selection */}
                   {(activeTab === 'sub-sub-roads' || activeTab === 'addresses') && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Parent Sub Road</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Parent Sub Road {activeTab === 'addresses' && subRoads.filter(sr => sr.road_id === selectedRoad && !sr.is_deleted).length === 0 ? '(Optional - Main Road)' : ''}
+                      </label>
                       <select
-                        required
+                        required={activeTab === 'sub-sub-roads' || (activeTab === 'addresses' && subRoads.filter(sr => sr.road_id === selectedRoad && !sr.is_deleted).length > 0)}
                         value={selectedSubRoad}
                         onChange={(e) => setSelectedSubRoad(e.target.value)}
                         disabled={!selectedRoad}
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                       >
-                        <option value="">Select Sub Road</option>
+                        <option value="">{subRoads.filter(sr => sr.road_id === selectedRoad && !sr.is_deleted).length === 0 ? 'Main Road (No Sub Roads)' : 'Select Sub Road'}</option>
                         {subRoads.filter(sr => sr.road_id === selectedRoad && !sr.is_deleted).map(subRoad => (
                           <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
                         ))}
                       </select>
                     </div>
                   )}
+                </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Name/Address Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -580,7 +584,7 @@ export default function RoadDetails() {
                   {activeTab === 'addresses' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Member Name (Optional)
+                        Member Name <span className="text-gray-500 text-xs">(Optional)</span>
                       </label>
                       <input
                         type="text"
