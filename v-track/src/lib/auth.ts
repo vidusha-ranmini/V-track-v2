@@ -19,7 +19,7 @@ export async function verifyPassword(password: string): Promise<boolean> {
   // For initial setup, if no hash is set, hash the password
   if (adminPasswordHash === 'your_hashed_password_here') {
     console.log('Please hash your password and update ADMIN_PASSWORD_HASH in .env.local');
-    return password === 'admin'; // Temporary fallback for development
+    return password === 'admin123'; // Temporary fallback for development
   }
 
   return await bcrypt.compare(password, adminPasswordHash);

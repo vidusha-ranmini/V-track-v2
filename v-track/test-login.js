@@ -12,7 +12,7 @@ async function testLogin() {
             },
             body: JSON.stringify({
                 username: 'admin',
-                password: 'admin'
+                password: 'admin123'
             })
         });
         

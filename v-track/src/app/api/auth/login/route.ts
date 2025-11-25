@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     if (!adminPasswordHash || adminPasswordHash === 'your_hashed_password_here') {
       // Fallback for development - direct password comparison
       console.log('⚠️ Using fallback password check');
-      isValidPassword = password === 'admin';
+      isValidPassword = password === 'admin123';
     } else {
       // Use bcrypt verification
       console.log('🔒 Using bcrypt verification');

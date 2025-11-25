@@ -17,9 +17,9 @@ console.log('JWT Secret (copy to JWT_SECRET in .env.local):');
 console.log(generateJWTSecret());
 console.log();
 
-// Generate password hash for 'admin'
-console.log('Password Hash for "admin" (copy to ADMIN_PASSWORD_HASH in .env.local):');
-console.log(generatePasswordHash('admin'));
+// Generate password hash for 'admin123'
+console.log('Password Hash for "admin123" (copy to ADMIN_PASSWORD_HASH in .env.local):');
+console.log(generatePasswordHash('admin123'));
 console.log();
 
 // Generate password hash for a custom password
