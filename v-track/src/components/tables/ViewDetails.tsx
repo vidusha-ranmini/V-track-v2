@@ -88,6 +88,7 @@ export default function ViewDetails() {
       const response = await fetch('/api/members');
       if (response.ok) {
         const data = await response.json();
+        console.log('Members data:', data);
         setMembers(data);
       }
     } catch (error) {
@@ -102,6 +103,7 @@ export default function ViewDetails() {
       const response = await fetch('/api/roads');
       if (response.ok) {
         const data = await response.json();
+        console.log('Roads data:', data);
         setRoads(data);
       }
     } catch (error) {
@@ -114,6 +116,7 @@ export default function ViewDetails() {
       const response = await fetch('/api/sub-roads');
       if (response.ok) {
         const data = await response.json();
+        console.log('Sub-roads data:', data);
         setSubRoads(data);
         setFilteredSubRoads(data);
       }
@@ -124,9 +127,11 @@ export default function ViewDetails() {
 
   // Handle road filter change and update sub-roads
   const handleRoadFilterChange = (roadId: string) => {
+    console.log('Road filter changed to:', roadId);
     setFilters({...filters, road: roadId, subRoad: ''}); // Reset sub-road when road changes
     if (roadId) {
       const filtered = subRoads.filter(subRoad => subRoad.road_id === roadId);
+      console.log('Filtered sub-roads:', filtered);
       setFilteredSubRoads(filtered);
     } else {
       setFilteredSubRoads(subRoads);
@@ -134,7 +139,9 @@ export default function ViewDetails() {
   };
 
   const filterMembers = () => {
+    console.log('Filtering members with filters:', filters);
     let filtered = members.filter(member => !member.is_deleted);
+    console.log('Initial filtered count:', filtered.length);
 
     // Search filter
     if (searchTerm) {
@@ -164,17 +171,24 @@ export default function ViewDetails() {
 
     // Road filter
     if (filters.road) {
-      filtered = filtered.filter(member => member.road_name === filters.road);
-    }
-
-    // Road filter
-    if (filters.road) {
-      filtered = filtered.filter(member => member.road_id === filters.road);
+      console.log('Applying road filter:', filters.road);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(member => {
+        console.log(`Member ${member.full_name}: road_id=${member.road_id}, matches=${member.road_id === filters.road}`);
+        return member.road_id === filters.road;
+      });
+      console.log(`Road filter: ${beforeCount} -> ${filtered.length} members`);
     }
 
     // Sub-road filter
     if (filters.subRoad) {
-      filtered = filtered.filter(member => member.sub_road_id === filters.subRoad);
+      console.log('Applying sub-road filter:', filters.subRoad);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(member => {
+        console.log(`Member ${member.full_name}: sub_road_id=${member.sub_road_id}, matches=${member.sub_road_id === filters.subRoad}`);
+        return member.sub_road_id === filters.subRoad;
+      });
+      console.log(`Sub-road filter: ${beforeCount} -> ${filtered.length} members`);
     }
 
     setFilteredMembers(filtered);
