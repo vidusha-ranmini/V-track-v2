@@ -73,7 +73,10 @@ export default function RoadDetails() {
   });
 
   useEffect(() => {
-    fetchAllData();
+    const loadData = async () => {
+      await fetchAllData();
+    };
+    loadData();
   }, []);
 
   // Reset filters when switching tabs
@@ -149,16 +152,21 @@ export default function RoadDetails() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with activeTab:', activeTab);
+    console.log('Form data:', formData);
+    console.log('Selected road:', selectedRoad);
+    console.log('Selected sub road:', selectedSubRoad);
     setIsLoading(true);
 
     try {
       let endpoint = '';
-      let payload: any = {};
+      let payload: Record<string, any> = {};
 
       switch (activeTab) {
         case 'roads':
           endpoint = editingItem ? `/api/roads/${editingItem}` : '/api/roads';
           payload = { name: formData.name };
+          console.log('Creating road with payload:', payload);
           break;
         case 'sub-roads':
           endpoint = editingItem ? `/api/sub-roads/${editingItem}` : '/api/sub-roads';
@@ -190,8 +198,12 @@ export default function RoadDetails() {
         body: JSON.stringify(payload),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       if (response.ok) {
         const itemType = activeTab.slice(0, -1).replace('-', ' ');
+        console.log('Success! Item type:', itemType);
         showSuccess(
           `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} ${editingItem ? 'Updated' : 'Added'}`,
           `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} has been ${editingItem ? 'updated' : 'added'} successfully.`
@@ -200,6 +212,7 @@ export default function RoadDetails() {
         fetchAllData();
       } else {
         const error = await response.json();
+        console.error('API Error:', error);
         showError(
           'Operation Failed',
           error.error || `Failed to ${editingItem ? 'update' : 'add'} ${activeTab.slice(0, -1)}`
@@ -278,7 +291,7 @@ export default function RoadDetails() {
     setSelectedSubRoad('');
   };
 
-  const handleEdit = (item: any, type: ActiveTab) => {
+  const handleEdit = (item: Record<string, any>, type: ActiveTab) => {
     if (type === 'addresses') {
       setFormData({ ...formData, address: item.address, member: item.member || '', name: '' });
     } else {

@@ -131,7 +131,7 @@ function ToastNotification({ toast, onRemove }: { toast: Toast; onRemove: () => 
       `}
     >
       <div className="flex items-start">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           {getIcon()}
         </div>
         <div className="ml-3 flex-1 min-w-0">
@@ -144,7 +144,7 @@ function ToastNotification({ toast, onRemove }: { toast: Toast; onRemove: () => 
             </p>
           )}
         </div>
-        <div className="ml-4 flex-shrink-0">
+        <div className="ml-4 shrink-0">
           <button
             onClick={handleRemove}
             className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors duration-200"
