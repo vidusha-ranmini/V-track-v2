@@ -560,9 +560,9 @@ export default function RoadDetails() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Name/Address Input */}
-                  <div>
+                  <div className={activeTab === 'roads' ? 'md:col-span-2' : ''}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {activeTab === 'addresses' ? 'Address' : 'Name'}
+                      {activeTab === 'addresses' ? 'Address' : 'Name'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"

@@ -66,10 +66,6 @@ export default function AddDetails() {
     requiresSpecialMonitoring: false, // Discreet field for suspicious people
   });
 
-  useEffect(() => {
-    fetchRoads();
-  }, []);
-
   const fetchRoads = async () => {
     try {
       const response = await fetch('/api/roads');
@@ -81,6 +77,10 @@ export default function AddDetails() {
       console.error('Error fetching roads:', error);
     }
   };
+
+  useEffect(() => {
+    fetchRoads();
+  }, []);
 
   const fetchSubRoads = async (roadId: string) => {
     try {

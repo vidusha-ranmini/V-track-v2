@@ -49,7 +49,7 @@ export default function RoadLamps() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLamp, setEditingLamp] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'working' | 'broken'>('all');
   const [roadFilter, setRoadFilter] = useState('');
   
   const [lampData, setLampData] = useState({
@@ -135,7 +135,7 @@ export default function RoadLamps() {
       );
     }
 
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(lamp => lamp.status === statusFilter);
     }
 
@@ -352,10 +352,10 @@ export default function RoadLamps() {
             {/* Status Filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'working' | 'broken')}
               className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">All Status</option>
+              <option value="all">All Status</option>
               <option value="working">Working</option>
               <option value="broken">Broken</option>
             </select>
@@ -489,76 +489,110 @@ export default function RoadLamps() {
         </div>
       )}
 
-      {/* Road Lamps Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredLamps.map(lamp => (
-          <div key={lamp.id} className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center">
-                <Lightbulb className={`w-6 h-6 mr-3 ${
-                  lamp.status === 'working' ? 'text-green-600' : 'text-red-600'
-                }`} />
-                <div>
-                  <h3 className="font-semibold text-gray-900">{lamp.lamp_number}</h3>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    lamp.status === 'working' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {lamp.status.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => toggleStatus(lamp.id, lamp.status)}
-                className={`p-2 rounded-md transition-colors ${
-                  lamp.status === 'working'
-                    ? 'bg-green-100 hover:bg-green-200 text-green-700'
-                    : 'bg-red-100 hover:bg-red-200 text-red-700'
-                }`}
-                title={`Mark as ${lamp.status === 'working' ? 'broken' : 'working'}`}
-              >
-                {lamp.status === 'working' ? (
-                  <ToggleRight className="w-5 h-5" />
-                ) : (
-                  <ToggleLeft className="w-5 h-5" />
-                )}
-              </button>
-            </div>
-            
-            <div className="space-y-2 text-sm text-gray-600 mb-4">
-              <div className="flex items-center">
-                <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                <span>{lamp.road_name}</span>
-              </div>
-              <div className="pl-6">
-                <div>→ {lamp.sub_road_name}</div>
-                <div className="text-xs text-gray-500">→ {lamp.address}</div>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleEdit(lamp)}
-                className="flex items-center px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-              >
-                <Edit className="w-3 h-3 mr-1" />
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(lamp.id)}
-                className="flex items-center px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-              >
-                <Trash2 className="w-3 h-3 mr-1" />
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+      {/* Road Lamps Table */}
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Lamp Details
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Address
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredLamps.map(lamp => (
+                <tr key={lamp.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <Lightbulb className={`w-5 h-5 mr-3 ${
+                        lamp.status === 'working' ? 'text-green-600' : 'text-red-600'
+                      }`} />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{lamp.lamp_number}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center justify-between">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        lamp.status === 'working' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {lamp.status.toUpperCase()}
+                      </span>
+                      <button
+                        onClick={() => toggleStatus(lamp.id, lamp.status)}
+                        className={`ml-2 p-1 rounded transition-colors ${
+                          lamp.status === 'working'
+                            ? 'bg-green-100 hover:bg-green-200 text-green-700'
+                            : 'bg-red-100 hover:bg-red-200 text-red-700'
+                        }`}
+                        title={`Mark as ${lamp.status === 'working' ? 'broken' : 'working'}`}
+                      >
+                        {lamp.status === 'working' ? (
+                          <ToggleRight className="w-4 h-4" />
+                        ) : (
+                          <ToggleLeft className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-1 text-gray-400" />
+                        {lamp.road_name}
+                      </div>
+                      {lamp.sub_road_name && (
+                        <div className="text-xs text-gray-500 ml-5">
+                          → {lamp.sub_road_name}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-500">{lamp.address}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleEdit(lamp)}
+                        className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(lamp.id)}
+                        className="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         
         {filteredLamps.length === 0 && (
-          <div className="col-span-full text-center py-12">
+          <div className="text-center py-12">
             <Lightbulb className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-500 text-lg">No road lamps found</p>
             <p className="text-gray-400">Add the first road lamp to get started</p>
