@@ -51,8 +51,15 @@ export default function ViewDetails() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditHouseholdModal, setShowEditHouseholdModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [editingHousehold, setEditingHousehold] = useState<{
+    id: string;
+    assessment_number: string;
+    resident_type: string;
+    waste_disposal: string;
+  } | null>(null);
   const [filters, setFilters] = useState({
     residentType: '',
     occupation: '',
@@ -192,21 +199,146 @@ export default function ViewDetails() {
     setEditingMember(null);
   };
 
+  const handleEditHousehold = (member: Member) => {
+    if (member.household_id) {
+      setEditingHousehold({
+        id: member.household_id,
+        assessment_number: member.assessment_number || '',
+        resident_type: member.resident_type || '',
+        waste_disposal: member.waste_disposal || ''
+      });
+      setShowEditHouseholdModal(true);
+      setShowModal(false); // Close details modal
+    } else {
+      showError('Household Not Found', 'No household information available for this member.');
+    }
+  };
+
+  const closeEditHouseholdModal = () => {
+    setEditingHousehold(null);
+    setShowEditHouseholdModal(false);
+  };
+
+  const handleHouseholdChange = (field: string, value: string) => {
+    if (editingHousehold) {
+      setEditingHousehold({
+        ...editingHousehold,
+        [field]: value
+      });
+    }
+  };
+
+  const handleSaveHousehold = async () => {
+    if (!editingHousehold) return;
+
+    try {
+      const response = await fetch(`/api/households/${editingHousehold.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assessment_number: editingHousehold.assessment_number,
+          resident_type: editingHousehold.resident_type,
+          waste_disposal: editingHousehold.waste_disposal
+        }),
+      });
+
+      if (response.ok) {
+        const updatedHousehold = await response.json();
+        
+        // Update all members with the same household_id
+        setMembers(members.map(m => {
+          if (m.household_id === editingHousehold.id) {
+            return {
+              ...m,
+              assessment_number: updatedHousehold.assessment_number,
+              resident_type: updatedHousehold.resident_type,
+              waste_disposal: updatedHousehold.waste_disposal,
+              household_updated_at: updatedHousehold.updated_at
+            };
+          }
+          return m;
+        }));
+        
+        closeEditHouseholdModal();
+        showSuccess(
+          'Household Updated',
+          'Household information has been updated successfully.'
+        );
+      } else {
+        const errorData = await response.json();
+        showError(
+          'Update Failed',
+          `Failed to update household: ${errorData.error || 'Unknown error'}`
+        );
+      }
+    } catch (error) {
+      console.error('Error updating household:', error);
+      showError(
+        'Network Error',
+        'Failed to update household. Please check your internet connection and try again.'
+      );
+    }
+  };
+
   const handleSaveEdit = async () => {
     if (!editingMember) return;
 
     try {
+      // Only send member-specific fields, exclude household and address data
+      const memberUpdateData = {
+        household_id: editingMember.household_id,
+        full_name: editingMember.full_name,
+        name_with_initial: editingMember.name_with_initial,
+        member_type: editingMember.member_type,
+        nic: editingMember.nic,
+        gender: editingMember.gender,
+        age: editingMember.age,
+        occupation: editingMember.occupation,
+        school_name: editingMember.school_name,
+        grade: editingMember.grade,
+        university_name: editingMember.university_name,
+        other_occupation: editingMember.other_occupation,
+        offers_receiving: editingMember.offers_receiving,
+        is_disabled: editingMember.is_disabled,
+        land_house_status: editingMember.land_house_status,
+        whatsapp_number: editingMember.whatsapp_number,
+        requires_special_monitoring: editingMember.requires_special_monitoring
+      };
+
       const response = await fetch(`/api/members/${editingMember.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editingMember),
+        body: JSON.stringify(memberUpdateData),
       });
 
       if (response.ok) {
-        const updatedMember = await response.json();
-        setMembers(members.map(m => m.id === editingMember.id ? updatedMember : m));
+        const updatedMemberData = await response.json();
+        
+        // Find the original member to preserve household and address data
+        const originalMember = members.find(m => m.id === editingMember.id);
+        
+        // Merge updated member data with preserved household/address data
+        const completeUpdatedMember = {
+          ...originalMember, // Preserve all original data
+          ...updatedMemberData, // Override with updated member fields
+          // Explicitly preserve household and address fields
+          address: originalMember?.address,
+          road_name: originalMember?.road_name,
+          sub_road_name: originalMember?.sub_road_name,
+          road_id: originalMember?.road_id,
+          sub_road_id: originalMember?.sub_road_id,
+          resident_type: originalMember?.resident_type,
+          assessment_number: originalMember?.assessment_number,
+          waste_disposal: originalMember?.waste_disposal,
+          household_created_at: originalMember?.household_created_at,
+          household_updated_at: originalMember?.household_updated_at
+        };
+        
+        setMembers(members.map(m => m.id === editingMember.id ? completeUpdatedMember : m));
         closeEditModal();
         showSuccess(
           'Member Updated',
@@ -806,6 +938,15 @@ export default function ViewDetails() {
                 Edit Member
               </button>
               <button
+                onClick={() => {
+                  handleEditHousehold(selectedMember);
+                }}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Edit Household
+              </button>
+              <button
                 onClick={closeModal}
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
               >
@@ -1073,6 +1214,104 @@ export default function ViewDetails() {
               >
                 <User className="w-4 h-4 mr-2" />
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Household Edit Modal */}
+      {showEditHouseholdModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full m-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Home className="w-5 h-5 mr-2 text-green-600" />
+                Edit Household Details
+              </h3>
+              <button
+                onClick={() => setShowEditHouseholdModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Assessment Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editingHousehold?.assessment_number || ''}
+                    onChange={(e) => editingHousehold && setEditingHousehold({
+                      ...editingHousehold,
+                      assessment_number: e.target.value
+                    })}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="Enter assessment number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Resident Type
+                  </label>
+                  <select
+                    value={editingHousehold?.resident_type || ''}
+                    onChange={(e) => editingHousehold && setEditingHousehold({
+                      ...editingHousehold,
+                      resident_type: e.target.value
+                    })}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="">Select resident type</option>
+                    <option value="permanent">Permanent</option>
+                    <option value="temporary">Temporary</option>
+                    <option value="rental">Rental</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Waste Disposal
+                  </label>
+                  <select
+                    value={editingHousehold?.waste_disposal || ''}
+                    onChange={(e) => editingHousehold && setEditingHousehold({
+                      ...editingHousehold,
+                      waste_disposal: e.target.value
+                    })}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="">Select waste disposal method</option>
+                    <option value="municipal">Municipal Collection</option>
+                    <option value="private">Private Collection</option>
+                    <option value="self">Self Disposal</option>
+                    <option value="compost">Compost</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg space-x-4">
+              <button
+                onClick={() => setShowEditHouseholdModal(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveHousehold}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Save Household
               </button>
             </div>
           </div>
