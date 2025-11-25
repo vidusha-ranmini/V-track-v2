@@ -150,8 +150,48 @@ export default function RoadDetails() {
     }
   };
 
+  const validateFormData = () => {
+    // Check for duplicate road names
+    if (activeTab === 'roads' && !editingItem) {
+      const existingRoad = roads.find(road => 
+        road.name.toLowerCase() === formData.name.toLowerCase() && !road.is_deleted
+      );
+      if (existingRoad) {
+        showError(
+          'Duplicate Road Name',
+          `A road named "${formData.name}" already exists. Please choose a different name.`
+        );
+        return false;
+      }
+    }
+    
+    // Check for duplicate sub-road names within the same parent road
+    if (activeTab === 'sub-roads' && !editingItem) {
+      const existingSubRoad = subRoads.find(subRoad => 
+        subRoad.name.toLowerCase() === formData.name.toLowerCase() && 
+        subRoad.road_id === selectedRoad && 
+        !subRoad.is_deleted
+      );
+      if (existingSubRoad) {
+        showError(
+          'Duplicate Sub-Road Name',
+          `A sub-road named "${formData.name}" already exists for this road. Please choose a different name.`
+        );
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form data before submission
+    if (!validateFormData()) {
+      return;
+    }
+    
     console.log('Form submitted with activeTab:', activeTab);
     console.log('Form data:', formData);
     console.log('Selected road:', selectedRoad);
@@ -591,6 +631,23 @@ export default function RoadDetails() {
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       placeholder={activeTab === 'addresses' ? 'Enter address' : 'Enter name'}
                     />
+                    
+                    {/* Show existing names for roads and sub-roads to help avoid duplicates */}
+                    {(activeTab === 'roads' || activeTab === 'sub-roads') && !editingItem && (
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-1">
+                          Existing {activeTab === 'roads' ? 'roads' : 'sub-roads'}:
+                        </p>
+                        <div className="text-xs text-gray-400 max-h-20 overflow-y-auto">
+                          {activeTab === 'roads' 
+                            ? roads.filter(r => !r.is_deleted).map(r => r.name).join(', ')
+                            : selectedRoad 
+                              ? subRoads.filter(sr => sr.road_id === selectedRoad && !sr.is_deleted).map(sr => sr.name).join(', ') || 'None'
+                              : 'Select a parent road first'
+                          }
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Member Input for Addresses */}

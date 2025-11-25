@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Building, MapPin, User, Tag, Save, X, Search, Filter, Download, Edit, Trash2, Eye, Phone, Calendar } from 'lucide-react';
+import { Building, MapPin, User, Tag, Save, X, Search, Download, Edit, Trash2, Eye, Phone, Calendar } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface Business {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, Edit, Trash2, X, User, Phone, MapPin, Briefcase, Calendar, Home } from 'lucide-react';
+import { Search, Download, Edit, Trash2, X, User, Phone, MapPin, Briefcase, Calendar, Home } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 

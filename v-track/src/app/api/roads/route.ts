@@ -51,19 +51,58 @@ export async function POST(request: Request) {
     const { createAdminClient } = await import('@/lib/supabase');
     const supabase = createAdminClient();
     
+    // First check if a road with this name already exists
+    const { data: existingRoad, error: checkError } = await supabase
+      .from('roads')
+      .select('id, name')
+      .eq('name', name)
+      .eq('is_deleted', false)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 means no rows found, which is what we want
+      console.error('Error checking for existing road:', checkError);
+      throw checkError;
+    }
+
+    if (existingRoad) {
+      return NextResponse.json(
+        { error: `A road named "${name}" already exists. Please choose a different name.` },
+        { status: 409 } // Conflict status
+      );
+    }
+    
     const { data, error } = await supabase
       .from('roads')
       .insert([{ name }])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Handle specific database errors
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: `A road named "${name}" already exists. Please choose a different name.` },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
 
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error creating road:', error);
+    
+    // Check if it's a duplicate key error
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+      return NextResponse.json(
+        { error: `A road named "${name}" already exists. Please choose a different name.` },
+        { status: 409 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create road' },
+      { error: 'Failed to create road. Please try again.' },
       { status: 500 }
     );
   }

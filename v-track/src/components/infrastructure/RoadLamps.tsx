@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Lightbulb, Plus, Edit, Trash2, Search, Filter, MapPin, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Lightbulb, Plus, Edit, Trash2, Search, MapPin, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface RoadLamp {
@@ -23,12 +23,14 @@ interface RoadLamp {
 interface Road {
   id: string;
   name: string;
+  is_deleted?: boolean;
 }
 
 interface SubRoad {
   id: string;
   name: string;
   road_id: string;
+  is_deleted?: boolean;
 }
 
 interface Address {
@@ -36,6 +38,7 @@ interface Address {
   address: string;
   road_id: string;
   sub_road_id: string;
+  is_deleted?: boolean;
 }
 
 export default function RoadLamps() {
@@ -46,6 +49,8 @@ export default function RoadLamps() {
   const [subRoads, setSubRoads] = useState<SubRoad[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSubRoads, setIsLoadingSubRoads] = useState(false);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLamp, setEditingLamp] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,6 +72,7 @@ export default function RoadLamps() {
 
   useEffect(() => {
     filterLamps();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lamps, searchTerm, statusFilter, roadFilter]);
 
   const fetchLamps = async () => {
@@ -146,22 +152,92 @@ export default function RoadLamps() {
     setFilteredLamps(filtered);
   };
 
-  const handleRoadChange = (roadId: string) => {
+  const handleRoadChange = async (roadId: string) => {
+    console.log('Road changed to:', roadId);
     setLampData(prev => ({ ...prev, road_id: roadId, sub_road_id: '', address_id: '' }));
+    
     if (roadId) {
-      fetchSubRoads(roadId);
+      try {
+        // Clear previous data and show loading
+        setSubRoads([]);
+        setAddresses([]);
+        setIsLoadingSubRoads(true);
+        setIsLoadingAddresses(false);
+        
+        // Fetch sub-roads for selected road
+        const response = await fetch(`/api/roads/${roadId}/sub-roads`);
+        console.log('Sub-roads API response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Sub-roads data received:', data);
+          
+          // Filter out deleted sub-roads on client side as additional safety
+          const activeSubRoads = data.filter((sr: SubRoad) => !sr.is_deleted);
+          setSubRoads(activeSubRoads);
+          console.log('Active sub-roads set:', activeSubRoads);
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to fetch sub-roads:', response.status, errorText);
+          setSubRoads([]);
+        }
+      } catch (error) {
+        console.error('Error fetching sub-roads:', error);
+        setSubRoads([]);
+      } finally {
+        setIsLoadingSubRoads(false);
+      }
     } else {
+      console.log('No road selected, clearing sub-roads and addresses');
       setSubRoads([]);
       setAddresses([]);
+      setIsLoadingSubRoads(false);
+      setIsLoadingAddresses(false);
     }
   };
 
-  const handleSubRoadChange = (subRoadId: string) => {
+  const handleSubRoadChange = async (subRoadId: string) => {
+    // Update the form data immediately and get the current road_id
+    const currentRoadId = lampData.road_id;
     setLampData(prev => ({ ...prev, sub_road_id: subRoadId, address_id: '' }));
-    if (subRoadId && lampData.road_id) {
-      fetchAddresses(lampData.road_id, subRoadId);
+    
+    console.log('Sub-road changed to:', subRoadId, 'for road:', currentRoadId);
+    
+    if (subRoadId && currentRoadId) {
+      try {
+        // Clear previous addresses and show loading
+        setAddresses([]);
+        setIsLoadingAddresses(true);
+        
+        console.log('Fetching addresses for road:', currentRoadId, 'sub-road:', subRoadId);
+        
+        // Fetch addresses for selected sub-road
+        const response = await fetch(`/api/roads/${currentRoadId}/sub-roads/${subRoadId}/addresses`);
+        console.log('Addresses API response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Addresses data received:', data);
+          
+          // Filter out deleted addresses on client side as additional safety
+          const activeAddresses = data.filter((addr: Address) => !addr.is_deleted);
+          setAddresses(activeAddresses);
+          console.log('Active addresses set:', activeAddresses);
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to fetch addresses:', response.status, errorText);
+          setAddresses([]);
+        }
+      } catch (error) {
+        console.error('Error fetching addresses:', error);
+        setAddresses([]);
+      } finally {
+        setIsLoadingAddresses(false);
+      }
     } else {
+      console.log('Clearing addresses - no sub-road or road selected');
       setAddresses([]);
+      setIsLoadingAddresses(false);
     }
   };
 
@@ -234,9 +310,15 @@ export default function RoadLamps() {
     setShowAddForm(false);
     setSubRoads([]);
     setAddresses([]);
+    setIsLoadingSubRoads(false);
+    setIsLoadingAddresses(false);
   };
 
-  const handleEdit = (lamp: RoadLamp) => {
+  const handleEdit = async (lamp: RoadLamp) => {
+    setEditingLamp(lamp.id);
+    setShowAddForm(true);
+    
+    // Set the lamp data first
     setLampData({
       lamp_number: lamp.lamp_number,
       road_id: lamp.road_id,
@@ -244,13 +326,44 @@ export default function RoadLamps() {
       address_id: lamp.address_id,
       status: lamp.status
     });
-    setEditingLamp(lamp.id);
-    setShowAddForm(true);
     
+    // Clear any previous data
+    setSubRoads([]);
+    setAddresses([]);
+    
+    // Load related data sequentially to ensure proper state
     if (lamp.road_id) {
-      fetchSubRoads(lamp.road_id);
-      if (lamp.sub_road_id) {
-        fetchAddresses(lamp.road_id, lamp.sub_road_id);
+      try {
+        setIsLoadingSubRoads(true);
+        
+        // First load sub-roads for the selected road
+        const subRoadsResponse = await fetch(`/api/roads/${lamp.road_id}/sub-roads`);
+        if (subRoadsResponse.ok) {
+          const subRoadsData = await subRoadsResponse.json();
+          setSubRoads(subRoadsData);
+          console.log('Loaded sub-roads for editing:', subRoadsData);
+          
+          // Then load addresses if sub-road is selected
+          if (lamp.sub_road_id) {
+            setIsLoadingAddresses(true);
+            const addressesResponse = await fetch(`/api/roads/${lamp.road_id}/sub-roads/${lamp.sub_road_id}/addresses`);
+            if (addressesResponse.ok) {
+              const addressesData = await addressesResponse.json();
+              setAddresses(addressesData);
+              console.log('Loaded addresses for editing:', addressesData);
+            } else {
+              console.error('Failed to load addresses for editing');
+            }
+            setIsLoadingAddresses(false);
+          }
+        } else {
+          console.error('Failed to load sub-roads for editing');
+        }
+        setIsLoadingSubRoads(false);
+      } catch (error) {
+        console.error('Error loading related data for editing:', error);
+        setIsLoadingSubRoads(false);
+        setIsLoadingAddresses(false);
       }
     }
   };
@@ -415,44 +528,82 @@ export default function RoadLamps() {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select Road</option>
-                {roads.map(road => (
-                  <option key={road.id} value={road.id}>{road.name}</option>
-                ))}
+                {roads.filter(road => !road.is_deleted).map(road => {
+                  console.log('Rendering road option:', road);
+                  return (
+                    <option key={road.id} value={road.id}>{road.name}</option>
+                  );
+                })}
               </select>
+              {roads.length > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {roads.filter(road => !road.is_deleted).length} road(s) available
+                </div>
+              )}
             </div>
 
             {/* Sub Road */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sub Road</label>
               <select
-                required
+                required={subRoads.length > 0}
                 value={lampData.sub_road_id}
                 onChange={(e) => handleSubRoadChange(e.target.value)}
-                disabled={!lampData.road_id}
+                disabled={!lampData.road_id || isLoadingSubRoads}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               >
-                <option value="">Select Sub Road</option>
-                {subRoads.map(subRoad => (
-                  <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
-                ))}
+                <option value="">
+                  {isLoadingSubRoads 
+                    ? 'Loading sub-roads...' 
+                    : subRoads.length === 0 
+                      ? 'No Sub Roads Available' 
+                      : 'Select Sub Road'
+                  }
+                </option>
+                {subRoads.map(subRoad => {
+                  console.log('Rendering sub-road option:', subRoad);
+                  return (
+                    <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
+                  );
+                })}
               </select>
+              {subRoads.length > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {subRoads.length} sub-road(s) available for this road
+                </div>
+              )}
             </div>
 
             {/* Address */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
               <select
-                required
+                required={addresses.length > 0}
                 value={lampData.address_id}
                 onChange={(e) => setLampData({...lampData, address_id: e.target.value})}
-                disabled={!lampData.sub_road_id}
+                disabled={(!lampData.sub_road_id && subRoads.length > 0) || isLoadingAddresses}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               >
-                <option value="">Select Address</option>
-                {addresses.map(address => (
-                  <option key={address.id} value={address.id}>{address.address}</option>
-                ))}
+                <option value="">
+                  {isLoadingAddresses 
+                    ? 'Loading addresses...' 
+                    : addresses.length === 0 
+                      ? 'No Addresses Available' 
+                      : 'Select Address'
+                  }
+                </option>
+                {addresses.map(address => {
+                  console.log('Rendering address option:', address);
+                  return (
+                    <option key={address.id} value={address.id}>{address.address}</option>
+                  );
+                })}
               </select>
+              {addresses.length > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {addresses.length} address(es) available for this sub-road
+                </div>
+              )}
             </div>
 
             {/* Status */}

@@ -1,14 +1,13 @@
 "use client";
 
 import { logout } from '@/lib/auth';
-import { 
+import {
   Home, 
   UserPlus, 
   Users, 
   Building, 
   Lightbulb, 
   MapPin,
-  Activity,
   LogOut 
 } from 'lucide-react';
 
