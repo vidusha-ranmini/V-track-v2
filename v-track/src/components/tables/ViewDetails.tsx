@@ -23,6 +23,8 @@ interface Member {
   is_disabled: boolean;
   land_house_status?: string;
   whatsapp_number?: string;
+  workplace_address?: string;
+  workplace_location?: string;
   requires_special_monitoring?: boolean;
   is_deleted: boolean;
   // Address data from household -> addresses relationship
@@ -65,10 +67,16 @@ export default function ViewDetails() {
     occupation: '',
     gender: '',
     road: '',
+    subRoad: '',
   });
+  const [roads, setRoads] = useState<{id: string, name: string}[]>([]);
+  const [subRoads, setSubRoads] = useState<{id: string, name: string, road_id: string}[]>([]);
+  const [filteredSubRoads, setFilteredSubRoads] = useState<{id: string, name: string, road_id: string}[]>([]);
   
   useEffect(() => {
     fetchMembers();
+    fetchRoads();
+    fetchSubRoads();
   }, []);
 
   useEffect(() => {
@@ -86,6 +94,42 @@ export default function ViewDetails() {
       console.error('Error fetching members:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRoads = async () => {
+    try {
+      const response = await fetch('/api/roads');
+      if (response.ok) {
+        const data = await response.json();
+        setRoads(data);
+      }
+    } catch (error) {
+      console.error('Error fetching roads:', error);
+    }
+  };
+
+  const fetchSubRoads = async () => {
+    try {
+      const response = await fetch('/api/sub-roads');
+      if (response.ok) {
+        const data = await response.json();
+        setSubRoads(data);
+        setFilteredSubRoads(data);
+      }
+    } catch (error) {
+      console.error('Error fetching sub-roads:', error);
+    }
+  };
+
+  // Handle road filter change and update sub-roads
+  const handleRoadFilterChange = (roadId: string) => {
+    setFilters({...filters, road: roadId, subRoad: ''}); // Reset sub-road when road changes
+    if (roadId) {
+      const filtered = subRoads.filter(subRoad => subRoad.road_id === roadId);
+      setFilteredSubRoads(filtered);
+    } else {
+      setFilteredSubRoads(subRoads);
     }
   };
 
@@ -121,6 +165,16 @@ export default function ViewDetails() {
     // Road filter
     if (filters.road) {
       filtered = filtered.filter(member => member.road_name === filters.road);
+    }
+
+    // Road filter
+    if (filters.road) {
+      filtered = filtered.filter(member => member.road_id === filters.road);
+    }
+
+    // Sub-road filter
+    if (filters.subRoad) {
+      filtered = filtered.filter(member => member.sub_road_id === filters.subRoad);
     }
 
     setFilteredMembers(filtered);
@@ -304,6 +358,8 @@ export default function ViewDetails() {
         is_disabled: editingMember.is_disabled,
         land_house_status: editingMember.land_house_status,
         whatsapp_number: editingMember.whatsapp_number,
+        workplace_address: editingMember.workplace_address,
+        workplace_location: editingMember.workplace_location,
         requires_special_monitoring: editingMember.requires_special_monitoring
       };
 
@@ -371,7 +427,7 @@ export default function ViewDetails() {
 
   const exportData = () => {
     const csv = [
-      ['Location', 'Resident Type', 'Member Name', 'Occupation', 'Offers', 'NIC', 'WhatsApp'],
+      ['Location', 'Resident Type', 'Member Name', 'Occupation', 'Offers', 'NIC', 'WhatsApp', 'Workplace Address', 'Workplace Location'],
       ...filteredMembers.map(member => [
         `${member.road_name || ''} - ${member.sub_road_name || ''} - ${member.address || ''}`,
         member.resident_type || '',
@@ -379,7 +435,9 @@ export default function ViewDetails() {
         member.occupation,
         member.offers_receiving?.join(', ') || '',
         member.nic,
-        member.whatsapp_number || ''
+        member.whatsapp_number || '',
+        member.workplace_address || '',
+        member.workplace_location || ''
       ])
     ].map(row => row.join(',')).join('\n');
     
@@ -412,7 +470,7 @@ export default function ViewDetails() {
 
       {/* Search and Filters */}
       <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -424,6 +482,31 @@ export default function ViewDetails() {
               className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          {/* Road Filter */}
+          <select
+            value={filters.road}
+            onChange={(e) => handleRoadFilterChange(e.target.value)}
+            className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Roads</option>
+            {roads.map(road => (
+              <option key={road.id} value={road.id}>{road.name}</option>
+            ))}
+          </select>
+
+          {/* Sub-Road Filter */}
+          <select
+            value={filters.subRoad}
+            onChange={(e) => setFilters({...filters, subRoad: e.target.value})}
+            className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            disabled={!filters.road}
+          >
+            <option value="">All Sub-Roads</option>
+            {filteredSubRoads.map(subRoad => (
+              <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
+            ))}
+          </select>
 
           {/* Resident Type Filter */}
           <select
@@ -484,8 +567,10 @@ export default function ViewDetails() {
                 residentType: '',
                 occupation: '',
                 gender: '',
-                road: ''
+                road: '',
+                subRoad: '',
               });
+              setFilteredSubRoads(subRoads); // Reset sub-roads filter
             }}
             className="text-sm text-gray-600 hover:text-gray-800"
           >
@@ -780,6 +865,30 @@ export default function ViewDetails() {
                   </div>
                 </div>
               </div>
+
+              {/* Workplace Information */}
+              {(selectedMember.workplace_address || selectedMember.workplace_location) && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-lg font-medium text-gray-900 mb-3 flex items-center">
+                    <Briefcase className="w-5 h-5 mr-2 text-purple-600" />
+                    Workplace Information
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedMember.workplace_address && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Workplace Address</label>
+                        <p className="text-sm text-gray-900">{selectedMember.workplace_address}</p>
+                      </div>
+                    )}
+                    {selectedMember.workplace_location && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Workplace Location</label>
+                        <p className="text-sm text-gray-900">{selectedMember.workplace_location}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Home Details */}
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -1198,6 +1307,38 @@ export default function ViewDetails() {
                   />
                 </div>
               </div>
+
+              {/* Workplace Information */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900 flex items-center">
+                  <Briefcase className="w-5 h-5 mr-2 text-purple-600" />
+                  Workplace Information
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Workplace Address</label>
+                    <input
+                      type="text"
+                      value={editingMember.workplace_address || ''}
+                      onChange={(e) => handleEditChange('workplace_address', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter workplace address"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Workplace Location</label>
+                    <input
+                      type="text"
+                      value={editingMember.workplace_location || ''}
+                      onChange={(e) => handleEditChange('workplace_location', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter workplace location/city"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Modal Footer */}
@@ -1289,10 +1430,8 @@ export default function ViewDetails() {
                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   >
                     <option value="">Select waste disposal method</option>
-                    <option value="municipal">Municipal Collection</option>
-                    <option value="private">Private Collection</option>
-                    <option value="self">Self Disposal</option>
-                    <option value="compost">Compost</option>
+                    <option value="local_council">Local Council</option>
+                    <option value="home">Home</option>
                   </select>
                 </div>
               </div>
