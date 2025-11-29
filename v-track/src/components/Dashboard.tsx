@@ -8,9 +8,10 @@ import ViewDetails from './tables/ViewDetails';
 import AddBusiness from './forms/AddBusiness';
 import RoadLamps from './infrastructure/RoadLamps';
 import RoadDetails from './infrastructure/RoadDetails';
+import { RoadDevelopment } from './infrastructure/RoadDevelopment';
 import ActivityLogs from './dashboard/ActivityLogs';
 
-type ActivePage = 'dashboard' | 'add-details' | 'view-details' | 'add-business' | 'road-lamps' | 'road-details' | 'activity-logs';
+type ActivePage = 'dashboard' | 'add-details' | 'view-details' | 'add-business' | 'road-lamps' | 'road-details' | 'road-development' | 'activity-logs';
 
 export default function Dashboard() {
   const [activePage, setActivePage] = useState<ActivePage>('dashboard');
@@ -33,6 +34,8 @@ export default function Dashboard() {
         return <RoadLamps />;
       case 'road-details':
         return <RoadDetails />;
+      case 'road-development':
+        return <RoadDevelopment />;
       case 'activity-logs':
         return <ActivityLogs />;
       default:
