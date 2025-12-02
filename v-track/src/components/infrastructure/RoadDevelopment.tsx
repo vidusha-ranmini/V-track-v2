@@ -9,11 +9,11 @@ interface RoadDevelopmentData {
   roadName: string;
   subRoadName?: string;
   subSubRoadName: string;
-  width: number;
-  height: number;
-  squareFeet: number; // width * height
+  width: number; // maps to development_parts in DB
+  height: number; // maps to estimated_area in DB  
+  squareFeet: number; // calculated from width * height
   costPerSqFt: number;
-  totalCost: number; // squareFeet * costPerSqFt
+  totalCost: number;
   developmentStatus: 'developed' | 'undeveloped' | 'in_progress';
   roadType: 'main' | 'sub';
   createdAt: string;
@@ -72,8 +72,8 @@ export function RoadDevelopment() {
     roadId: '',
     subRoadId: '',
     subSubRoadName: '',
-    width: 25,
-    height: 10,
+    width: 0,
+    height: 0,
     costPerSqFt: 400,
     developmentStatus: 'undeveloped'
   });
@@ -97,96 +97,228 @@ export function RoadDevelopment() {
     }
   }, [developmentData, statusFilter, roadFilter, searchTerm, mounted]);
 
+  // Recalculate stats whenever development data changes
+  useEffect(() => {
+    if (mounted && developmentData.length >= 0) {
+      console.log('🔄 Development data changed, recalculating stats...');
+      calculateStatsFromData();
+    }
+  }, [developmentData, mounted]);
+
   const normalizeData = (data: any[]): RoadDevelopmentData[] => {
-    return data.map(item => ({
-      id: item.id || '',
-      roadName: item.roadName || '',
-      subRoadName: item.subRoadName,
-      subSubRoadName: item.subSubRoadName || '',
-      width: item.width || 0,
-      height: item.height || 0,
-      squareFeet: item.squareFeet || (item.width || 0) * (item.height || 0),
-      costPerSqFt: item.costPerSqFt || 0,
-      totalCost: item.totalCost || ((item.squareFeet || (item.width || 0) * (item.height || 0)) * (item.costPerSqFt || 0)),
-      developmentStatus: item.developmentStatus || 'undeveloped',
-      roadType: item.roadType || 'main',
-      createdAt: item.createdAt || new Date().toISOString().split('T')[0]
-    }));
+    console.log('🔄 Starting normalizeData with input:', data);
+    
+    if (!Array.isArray(data)) {
+      console.error('❌ normalizeData received non-array data:', typeof data, data);
+      return [];
+    }
+    
+    const normalized = data.map((item, index) => {
+      console.log(`🔄 Normalizing item ${index}:`, item);
+      
+      // Map database fields to component fields
+      // Database uses: development_parts, estimated_area
+      // Component uses: width, height for UI consistency
+      const width = Number(item.width) || Number(item.development_parts) || 25;
+      const height = Number(item.height) || Number(item.estimated_area) || 10;
+      const costPerSqFt = Number(item.costPerSqFt) || Number(item.cost_per_sq_ft) || 400;
+      const squareFeet = Number(item.squareFeet) || Number(item.square_feet) || (width * height);
+      const totalCost = Number(item.totalCost) || Number(item.total_cost) || (squareFeet * costPerSqFt);
+      
+      const normalizedItem = {
+        id: item.id || '',
+        roadName: item.roadName || item.road_name || '',
+        subRoadName: item.subRoadName || item.sub_road_name,
+        subSubRoadName: item.subSubRoadName || item.sub_sub_road_name || '',
+        width,
+        height,
+        squareFeet,
+        costPerSqFt,
+        totalCost,
+        developmentStatus: (item.developmentStatus || item.development_status || 'undeveloped') as 'developed' | 'undeveloped' | 'in_progress',
+        roadType: (item.roadType || item.road_type || 'main') as 'main' | 'sub',
+        createdAt: item.createdAt || item.created_at || new Date().toISOString().split('T')[0]
+      };
+      
+      console.log(`✅ Normalized item ${index}:`, normalizedItem);
+      return normalizedItem;
+    });
+    
+    console.log('✅ normalizeData completed. Results:', normalized);
+    return normalized;
   };
 
   const fetchDevelopmentData = async () => {
+    console.log('🚀 Starting fetchDevelopmentData...');
     try {
+      console.log('📡 Fetching road development data from /api/road-development');
       const response = await fetch('/api/road-development');
+      console.log('📊 Response status:', response.status, response.statusText);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API response not ok:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
         throw new Error('Failed to fetch road development data');
       }
+      
       const data = await response.json();
+      console.log('✅ Raw data received:', { count: data?.length || 0, data });
+      
       const normalizedData = normalizeData(data);
+      console.log('🔄 Data normalized:', { count: normalizedData.length, normalizedData });
+      
       setDevelopmentData(normalizedData);
+      console.log('✅ Development data set successfully');
     } catch (error) {
-      console.error('Error fetching development data:', error);
+      console.error('❌ Error in fetchDevelopmentData:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      });
       setError('Failed to load development data');
       setDevelopmentData([]);
     } finally {
       setLoading(false);
+      console.log('🏁 fetchDevelopmentData completed');
     }
   };
 
   const fetchStats = async () => {
+    console.log('📈 Starting fetchStats...');
     try {
+      console.log('📡 Fetching stats from /api/road-development?stats=true');
       const response = await fetch('/api/road-development?stats=true');
+      console.log('📊 Stats response status:', response.status, response.statusText);
+      
       if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+        const rawData = await response.json();
+        console.log('📊 Raw stats data received:', rawData);
+        
+        // Map the API response to match our interface
+        const statsData = {
+          totalProjects: rawData.total_projects || rawData.totalProjects || 0,
+          developedProjects: rawData.developed_projects || rawData.developedProjects || 0,
+          undevelopedProjects: rawData.undeveloped_projects || rawData.undevelopedProjects || 0,
+          inProgressProjects: rawData.in_progress_projects || rawData.inProgressProjects || 0,
+          totalEstimatedCost: rawData.total_estimated_cost || rawData.totalEstimatedCost || 0
+        };
+        
+        console.log('✅ Mapped stats data:', statsData);
+        setStats(statsData);
       } else {
+        const errorText = await response.text();
+        console.warn('⚠️ Stats API failed, calculating from local data:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
         // Calculate stats from current data if API fails
-        calculateStatsFromData();
+        setTimeout(() => calculateStatsFromData(), 100);
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('❌ Error in fetchStats:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      });
+      console.log('🔄 Falling back to calculateStatsFromData');
       // Calculate stats from current data
-      calculateStatsFromData();
+      setTimeout(() => calculateStatsFromData(), 100);
     }
   };
 
   const calculateStatsFromData = () => {
-    setStats({
+    console.log('📊 Starting calculateStatsFromData...');
+    console.log('📋 Development data for stats:', { count: developmentData.length, data: developmentData });
+    
+    if (!Array.isArray(developmentData)) {
+      console.error('❌ Development data is not an array:', developmentData);
+      setStats({
+        totalProjects: 0,
+        developedProjects: 0,
+        undevelopedProjects: 0,
+        inProgressProjects: 0,
+        totalEstimatedCost: 0
+      });
+      return;
+    }
+    
+    const stats = {
       totalProjects: developmentData.length,
       developedProjects: developmentData.filter(d => d.developmentStatus === 'developed').length,
       undevelopedProjects: developmentData.filter(d => d.developmentStatus === 'undeveloped').length,
       inProgressProjects: developmentData.filter(d => d.developmentStatus === 'in_progress').length,
-      totalEstimatedCost: developmentData.reduce((sum, d) => sum + (d.totalCost || 0), 0)
-    });
+      totalEstimatedCost: developmentData.reduce((sum, d) => {
+        const cost = Number(d.totalCost) || 0;
+        return sum + cost;
+      }, 0)
+    };
+    
+    console.log('📈 Calculated stats:', stats);
+    setStats(stats);
+    console.log('✅ calculateStatsFromData completed');
   };
 
   const fetchRoads = async () => {
+    console.log('🛣️ Starting fetchRoads...');
     try {
+      console.log('📡 Fetching roads from /api/roads');
       const response = await fetch('/api/roads');
+      console.log('📊 Roads response status:', response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Roads data received:', { count: data?.length || 0, data });
         setRoads(data);
       } else {
-        console.error('Failed to fetch roads from API');
+        const errorText = await response.text();
+        console.error('❌ Failed to fetch roads from API:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
         setRoads([]);
       }
     } catch (error) {
-      console.error('Error fetching roads:', error);
+      console.error('❌ Error in fetchRoads:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      });
       setRoads([]);
     }
   };
 
   const fetchSubRoads = async () => {
+    console.log('🛤️ Starting fetchSubRoads...');
     try {
+      console.log('📡 Fetching sub roads from /api/sub-roads');
       const response = await fetch('/api/sub-roads');
+      console.log('📊 Sub roads response status:', response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Sub roads data received:', { count: data?.length || 0, data });
         setSubRoads(data);
       } else {
-        console.error('Failed to fetch sub roads from API');
+        const errorText = await response.text();
+        console.error('❌ Failed to fetch sub roads from API:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
         setSubRoads([]);
       }
     } catch (error) {
-      console.error('Error fetching sub roads:', error);
+      console.error('❌ Error in fetchSubRoads:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      });
       setSubRoads([]);
     }
   };
@@ -218,37 +350,83 @@ export function RoadDevelopment() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Starting handleSubmit...');
+    console.log('📋 Form data:', formData);
+    console.log('✏️ Edit mode:', editId ? `Editing ID: ${editId}` : 'Creating new');
+    
+    // Validate form data
+    if (!formData.width || formData.width <= 0) {
+      console.error('❌ Invalid width value:', formData.width);
+      showError('Please enter a valid width greater than 0');
+      return;
+    }
+    
+    if (!formData.height || formData.height <= 0) {
+      console.error('❌ Invalid length value:', formData.height);
+      showError('Please enter a valid length greater than 0');
+      return;
+    }
+    
+    if (!formData.costPerSqFt || formData.costPerSqFt <= 0) {
+      console.error('❌ Invalid cost per sq ft value:', formData.costPerSqFt);
+      showError('Please enter a valid cost per square foot greater than 0');
+      return;
+    }
     
     try {
       const calculatedSquareFeet = formData.width * formData.height;
       const calculatedTotalCost = calculatedSquareFeet * formData.costPerSqFt;
+      console.log('🧮 Calculations:', {
+        width: formData.width,
+        height: formData.height,
+        calculatedSquareFeet,
+        costPerSqFt: formData.costPerSqFt,
+        calculatedTotalCost
+      });
       
       // Get road and sub road names
       const selectedRoad = roads.find(r => r.id === formData.roadId);
       const selectedSubRoad = subRoads.find(sr => sr.id === formData.subRoadId);
+      console.log('🔍 Selected references:', {
+        selectedRoad,
+        selectedSubRoad,
+        availableRoads: roads,
+        availableSubRoads: subRoads
+      });
       
       if (!selectedRoad) {
+        console.error('❌ No road selected');
         showError('Please select a road');
         return;
       }
       
-      // Map our form data to the API's expected format
+      // Map our form data to the API's expected format with correct database field names
       const submitData = {
         road_id: formData.roadId,
         parent_sub_road_id: formData.subRoadId || null,
         name: formData.subSubRoadName,
-        development_parts: 1, // Treating each entry as a single development project
-        cost_per_sq_ft: formData.costPerSqFt,
-        width: formData.width,
-        height: formData.height,
-        estimated_area: calculatedSquareFeet,
-        total_cost: calculatedTotalCost,
+        width: Number(formData.width),
+        height: Number(formData.height),
+        cost_per_sq_ft: Number(formData.costPerSqFt),
         development_status: formData.developmentStatus
       };
       
       const url = '/api/road-development';
       const method = editId ? 'PUT' : 'POST';
-      const body = editId ? { ...submitData, id: editId } : submitData;
+      const body = editId ? { 
+        id: editId, 
+        width: Number(formData.width),
+        height: Number(formData.height),
+        cost_per_sq_ft: Number(formData.costPerSqFt),
+        development_status: formData.developmentStatus
+      } : submitData;
+      
+      console.log('📤 Preparing API request:', {
+        url,
+        method,
+        body,
+        headers: { 'Content-Type': 'application/json' }
+      });
       
       const response = await fetch(url, {
         method,
@@ -258,12 +436,24 @@ export function RoadDevelopment() {
         body: JSON.stringify(body),
       });
 
+      console.log('📊 API response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('API Error:', errorData);
+        console.error('❌ API Error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          requestBody: body
+        });
         throw new Error(editId ? 'Failed to update road development' : 'Failed to add road development');
       }
 
+      console.log('✅ API request successful, refreshing data...');
       await fetchDevelopmentData();
       await fetchStats();
       
@@ -272,8 +462,15 @@ export function RoadDevelopment() {
       );
       
       resetForm();
+      console.log('✅ handleSubmit completed successfully');
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('❌ Error in handleSubmit:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        formData,
+        editId,
+        error
+      });
       showError(
         error instanceof Error ? error.message : (editId ? 'Failed to update road development' : 'Failed to add road development')
       );
@@ -298,25 +495,50 @@ export function RoadDevelopment() {
   };
 
   const handleDelete = async (id: string) => {
+    console.log('🗑️ Starting handleDelete for ID:', id);
     try {
+      console.log('📤 Sending delete request to /api/road-development');
+      const deleteBody = { id };
+      console.log('📋 Delete request body:', deleteBody);
+      
       const response = await fetch(`/api/road-development`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify(deleteBody),
+      });
+
+      console.log('📊 Delete response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
 
       if (!response.ok) {
+        const errorData = await response.text();
+        console.error('❌ Delete API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          requestId: id
+        });
         throw new Error('Failed to delete road development entry');
       }
 
+      console.log('✅ Delete successful, refreshing data...');
       await fetchDevelopmentData();
       await fetchStats();
       showSuccess('Road development entry deleted successfully');
+      console.log('✅ handleDelete completed successfully');
     } catch (error) {
+      console.error('❌ Error in handleDelete:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        id,
+        error
+      });
       showError('Failed to delete road development entry');
-      console.error('Error deleting entry:', error);
     }
   };
 
@@ -339,8 +561,8 @@ export function RoadDevelopment() {
       roadId: '',
       subRoadId: '',
       subSubRoadName: '',
-      width: 25,
-      height: 10,
+      width: 0,
+      height: 0,
       costPerSqFt: 400,
       developmentStatus: 'undeveloped'
     });
@@ -429,23 +651,23 @@ export function RoadDevelopment() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
             <div className="text-sm font-medium text-gray-500">Total Projects</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.totalProjects}</div>
+            <div className="text-3xl font-bold text-gray-900">{stats.totalProjects || 0}</div>
           </div>
           <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
             <div className="text-sm font-medium text-gray-500">Developed</div>
-            <div className="text-3xl font-bold text-green-600">{stats.developedProjects}</div>
+            <div className="text-3xl font-bold text-green-600">{stats.developedProjects || 0}</div>
           </div>
           <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
             <div className="text-sm font-medium text-gray-500">In Progress</div>
-            <div className="text-3xl font-bold text-yellow-600">{stats.inProgressProjects}</div>
+            <div className="text-3xl font-bold text-yellow-600">{stats.inProgressProjects || 0}</div>
           </div>
           <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
             <div className="text-sm font-medium text-gray-500">Undeveloped</div>
-            <div className="text-3xl font-bold text-red-600">{stats.undevelopedProjects}</div>
+            <div className="text-3xl font-bold text-red-600">{stats.undevelopedProjects || 0}</div>
           </div>
           <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
             <div className="text-sm font-medium text-gray-500">Total Cost</div>
-            <div className="text-lg font-bold text-gray-900">{formatCurrency(stats.totalEstimatedCost)}</div>
+            <div className="text-lg font-bold text-gray-900">{formatCurrency(stats.totalEstimatedCost || 0)}</div>
           </div>
         </div>
       )}
@@ -555,13 +777,16 @@ export function RoadDevelopment() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Width (ft) *</label>
               <input
                 type="number"
-                value={formData.width}
-                onChange={(e) => setFormData({ ...formData, width: parseFloat(e.target.value) || 0 })}
+                value={formData.width || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                  setFormData({ ...formData, width: value });
+                }}
                 required
                 min="1"
                 step="0.1"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., 25"
+                placeholder="Enter width in feet"
               />
             </div>
             
@@ -569,13 +794,16 @@ export function RoadDevelopment() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Length (ft) *</label>
               <input
                 type="number"
-                value={formData.height}
-                onChange={(e) => setFormData({ ...formData, height: parseFloat(e.target.value) || 0 })}
+                value={formData.height || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                  setFormData({ ...formData, height: value });
+                }}
                 required
                 min="1"
                 step="0.1"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., 10"
+                placeholder="Enter length in feet"
               />
             </div>
             
@@ -584,7 +812,10 @@ export function RoadDevelopment() {
               <input
                 type="number"
                 value={formData.costPerSqFt}
-                onChange={(e) => setFormData({ ...formData, costPerSqFt: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? '' : parseFloat(e.target.value);
+                  setFormData({ ...formData, costPerSqFt: value || 400 });
+                }}
                 required
                 min="1"
                 step="0.01"
