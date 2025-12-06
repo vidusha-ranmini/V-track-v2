@@ -21,7 +21,8 @@ interface Member {
   isDisabled: boolean;
   landHouseStatus: string;
   whatsappNumber: string;
-  requiresSpecialMonitoring: boolean;
+  isDrugUser: boolean;
+  isThief: boolean;
 }
 
 export default function AddDetails() {
@@ -63,7 +64,8 @@ export default function AddDetails() {
     isDisabled: false,
     landHouseStatus: '',
     whatsappNumber: '',
-    requiresSpecialMonitoring: false, // Discreet field for suspicious people
+    isDrugUser: false,
+    isThief: false,
   });
 
   const fetchRoads = async () => {
@@ -88,12 +90,31 @@ export default function AddDetails() {
       if (response.ok) {
         const data = await response.json();
         setSubRoads(data);
-        setAddresses([]); // Clear addresses when road changes
         setSelectedSubRoad('');
         setSelectedAddress('');
+        
+        // If no sub-roads exist, fetch addresses directly from main road
+        if (data.length === 0) {
+          fetchMainRoadAddresses(roadId);
+        } else {
+          setAddresses([]); // Clear addresses when road has sub-roads
+        }
       }
     } catch (error) {
       console.error('Error fetching sub-roads:', error);
+    }
+  };
+
+  const fetchMainRoadAddresses = async (roadId: string) => {
+    try {
+      const response = await fetch(`/api/roads/${roadId}/addresses`);
+      if (response.ok) {
+        const data = await response.json();
+        setAddresses(data);
+        setSelectedAddress('');
+      }
+    } catch (error) {
+      console.error('Error fetching main road addresses:', error);
     }
   };
 
@@ -111,11 +132,26 @@ export default function AddDetails() {
   };
 
   const calculateAgeFromNIC = (nic: string) => {
-    if (nic.length >= 4) {
+    const currentYear = new Date().getFullYear();
+    
+    // New NIC format (12 digits): YYYYMMDDXXXX
+    if (nic.length >= 12) {
       const year = parseInt(nic.substring(0, 4));
-      const currentYear = new Date().getFullYear();
-      return currentYear - year;
+      if (year >= 1900 && year <= currentYear) {
+        return currentYear - year;
+      }
     }
+    
+    // Old NIC format (9 digits + V): YYDDDXXXXX or YYDDDXXXXV
+    if (nic.length >= 2) {
+      const yearPrefix = parseInt(nic.substring(0, 2));
+      // Assume 19XX for years 20-99, and 20XX for years 00-19
+      const birthYear = yearPrefix >= 20 ? 1900 + yearPrefix : 2000 + yearPrefix;
+      if (birthYear <= currentYear) {
+        return currentYear - birthYear;
+      }
+    }
+    
     return 0;
   };
 
@@ -148,7 +184,8 @@ export default function AddDetails() {
         isDisabled: false,
         landHouseStatus: '',
         whatsappNumber: '',
-        requiresSpecialMonitoring: false,
+        isDrugUser: false,
+        isThief: false,
       });
     }
   };
@@ -267,9 +304,9 @@ export default function AddDetails() {
                   }
                 }}
                 className="w-full p-2 border border-gray-300 rounded-md"
-                disabled={!selectedRoad}
+                disabled={!selectedRoad || subRoads.length === 0}
               >
-                <option value="">Select Sub Road</option>
+                <option value="">{subRoads.length === 0 ? 'No Sub Roads' : 'Select Sub Road'}</option>
                 {subRoads.map((subRoad: {id: string, name: string}) => (
                   <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
                 ))}
@@ -284,7 +321,7 @@ export default function AddDetails() {
                 value={selectedAddress}
                 onChange={(e) => setSelectedAddress(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-md"
-                disabled={!selectedSubRoad}
+                disabled={!selectedRoad || (subRoads.length > 0 && !selectedSubRoad)}
               >
                 <option value="">Select Address</option>
                 {addresses.map((address: {id: string, address: string}) => (
@@ -579,12 +616,23 @@ export default function AddDetails() {
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  checked={currentMember.requiresSpecialMonitoring}
-                  onChange={(e) => setCurrentMember({ ...currentMember, requiresSpecialMonitoring: e.target.checked })}
+                  checked={currentMember.isDrugUser}
+                  onChange={(e) => setCurrentMember({ ...currentMember, isDrugUser: e.target.checked })}
                   className="mr-2"
                 />
-                <span className="text-sm text-gray-600">Requires special community monitoring</span>
-                <span className="ml-2 text-xs text-gray-400 italic">(for enhanced safety protocols)</span>
+                <span className="text-sm text-gray-600">Drug use monitoring</span>
+                <span className="ml-2 text-xs text-orange-500 italic">(shown with orange dot)</span>
+              </label>
+
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={currentMember.isThief}
+                  onChange={(e) => setCurrentMember({ ...currentMember, isThief: e.target.checked })}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-600">Theft monitoring</span>
+                <span className="ml-2 text-xs text-gray-800 italic">(shown with black dot)</span>
               </label>
             </div>
 

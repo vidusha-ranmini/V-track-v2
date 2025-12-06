@@ -25,7 +25,8 @@ interface Member {
   whatsapp_number?: string;
   workplace_address?: string;
   workplace_location?: string;
-  requires_special_monitoring?: boolean;
+  is_drug_user?: boolean;
+  is_thief?: boolean;
   is_deleted: boolean;
   // Address data from household -> addresses relationship
   address?: string;
@@ -150,7 +151,10 @@ export default function ViewDetails() {
         member.full_name.toLowerCase().includes(search) ||
         member.nic.toLowerCase().includes(search) ||
         member.whatsapp_number?.toLowerCase().includes(search) ||
-        member.occupation.toLowerCase().includes(search)
+        member.occupation.toLowerCase().includes(search) ||
+        member.address?.toLowerCase().includes(search) ||
+        member.road_name?.toLowerCase().includes(search) ||
+        member.sub_road_name?.toLowerCase().includes(search)
       );
     }
 
@@ -374,7 +378,8 @@ export default function ViewDetails() {
         whatsapp_number: editingMember.whatsapp_number,
         workplace_address: editingMember.workplace_address,
         workplace_location: editingMember.workplace_location,
-        requires_special_monitoring: editingMember.requires_special_monitoring
+        is_drug_user: editingMember.is_drug_user,
+        is_thief: editingMember.is_thief
       };
 
       const response = await fetch(`/api/members/${editingMember.id}`, {
@@ -640,10 +645,16 @@ export default function ViewDetails() {
                     <div>
                       <div className="text-sm font-medium text-gray-900 flex items-center">
                         {member.full_name}
-                        {member.requires_special_monitoring && (
+                        {member.is_drug_user && (
                           <span 
-                            className="ml-2 w-2 h-2 bg-orange-400 rounded-full" 
-                            title="Enhanced monitoring protocols apply"
+                            className="ml-2 w-2 h-2 bg-orange-500 rounded-full" 
+                            title="Drug use monitoring"
+                          />
+                        )}
+                        {member.is_thief && (
+                          <span 
+                            className="ml-2 w-2 h-2 bg-black rounded-full" 
+                            title="Theft monitoring"
                           />
                         )}
                       </div>
@@ -801,17 +812,28 @@ export default function ViewDetails() {
                     </div>
                   </div>
                 )}
-                {selectedMember.requires_special_monitoring && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                {selectedMember.is_drug_user && (
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-300 rounded-md">
                     <div className="flex">
                       <div className="shrink-0">
-                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
+                        <div className="w-5 h-5 bg-orange-500 rounded-full"></div>
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm text-blue-800">Enhanced community monitoring protocols apply.</p>
-                        <p className="text-xs text-blue-600 mt-1">This designation ensures appropriate safety measures and community awareness.</p>
+                        <p className="text-sm text-orange-800 font-medium">Drug use monitoring active</p>
+                        <p className="text-xs text-orange-600 mt-1">This member is flagged for community safety awareness.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {selectedMember.is_thief && (
+                  <div className="mt-3 p-3 bg-gray-100 border border-gray-400 rounded-md">
+                    <div className="flex">
+                      <div className="shrink-0">
+                        <div className="w-5 h-5 bg-black rounded-full"></div>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-gray-900 font-medium">Theft monitoring active</p>
+                        <p className="text-xs text-gray-700 mt-1">This member is flagged for community security awareness.</p>
                       </div>
                     </div>
                   </div>
@@ -1211,12 +1233,23 @@ export default function ViewDetails() {
                   <label className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={editingMember.requires_special_monitoring || false}
-                      onChange={(e) => handleEditChange('requires_special_monitoring', e.target.checked)}
+                      checked={editingMember.is_drug_user || false}
+                      onChange={(e) => handleEditChange('is_drug_user', e.target.checked)}
                       className="rounded border-gray-300 text-orange-600 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
                     />
-                    <span className="ml-2 text-sm text-gray-600">Requires enhanced community monitoring</span>
-                    <span className="ml-2 text-xs text-gray-400 italic">(for safety protocols)</span>
+                    <span className="ml-2 text-sm text-gray-600">Drug use monitoring</span>
+                    <span className="ml-2 text-xs text-orange-500 italic">(orange dot)</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editingMember.is_thief || false}
+                      onChange={(e) => handleEditChange('is_thief', e.target.checked)}
+                      className="rounded border-gray-300 text-gray-800 shadow-sm focus:border-gray-400 focus:ring focus:ring-gray-300 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">Theft monitoring</span>
+                    <span className="ml-2 text-xs text-gray-800 italic">(black dot)</span>
                   </label>
                 </div>
               </div>

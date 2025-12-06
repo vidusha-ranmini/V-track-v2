@@ -31,9 +31,11 @@ CREATE TABLE IF NOT EXISTS sub_sub_roads (
     road_id UUID REFERENCES roads(id) ON DELETE CASCADE,
     parent_sub_road_id UUID REFERENCES sub_roads(id) ON DELETE CASCADE,
     development_status TEXT CHECK (development_status IN ('developed', 'undeveloped')) DEFAULT 'undeveloped',
+    width DECIMAL(8,2) DEFAULT 25.0,
+    height DECIMAL(8,2) DEFAULT 10.0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     is_deleted BOOLEAN DEFAULT FALSE,
-    UNIQUE(name, parent_sub_road_id)
+    UNIQUE(name, parent_sub_road_id, width, height)
 );
 
 -- Addresses table
