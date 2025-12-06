@@ -68,19 +68,19 @@ export default function AddDetails() {
     isThief: false,
   });
 
-  const fetchRoads = async () => {
-    try {
-      const response = await fetch('/api/roads');
-      if (response.ok) {
-        const data = await response.json();
-        setRoads(data);
-      }
-    } catch (error) {
-      console.error('Error fetching roads:', error);
-    }
-  };
-
   useEffect(() => {
+    const fetchRoads = async () => {
+      try {
+        const response = await fetch('/api/roads');
+        if (response.ok) {
+          const data = await response.json();
+          setRoads(data);
+        }
+      } catch (error) {
+        console.error('Error fetching roads:', error);
+      }
+    };
+
     fetchRoads();
   }, []);
 
