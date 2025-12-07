@@ -105,7 +105,7 @@ export function RoadDevelopment() {
     }
   }, [developmentData, mounted]);
 
-  const normalizeData = (data: any[]): RoadDevelopmentData[] => {
+  const normalizeData = (data: RoadDevelopmentData[]): RoadDevelopmentData[] => {
     console.log('🔄 Starting normalizeData with input:', data);
     
     if (!Array.isArray(data)) {
@@ -117,27 +117,27 @@ export function RoadDevelopment() {
       console.log(`🔄 Normalizing item ${index}:`, item);
       
       // Map database fields to component fields
-      // Database uses: development_parts, estimated_area
+      // Database uses: width, height for development parts
       // Component uses: width, height for UI consistency
-      const width = Number(item.width) || Number(item.development_parts) || 25;
-      const height = Number(item.height) || Number(item.estimated_area) || 10;
-      const costPerSqFt = Number(item.costPerSqFt) || Number(item.cost_per_sq_ft) || 400;
-      const squareFeet = Number(item.squareFeet) || Number(item.square_feet) || (width * height);
-      const totalCost = Number(item.totalCost) || Number(item.total_cost) || (squareFeet * costPerSqFt);
+      const width = Number(item.width) || 25;
+      const height = Number(item.height) || 10;
+      const costPerSqFt = Number(item.costPerSqFt) || 400;
+      const squareFeet = Number(item.squareFeet) || (width * height);
+      const totalCost = Number(item.totalCost) || (squareFeet * costPerSqFt);
       
       const normalizedItem = {
         id: item.id || '',
-        roadName: item.roadName || item.road_name || '',
-        subRoadName: item.subRoadName || item.sub_road_name,
-        subSubRoadName: item.subSubRoadName || item.sub_sub_road_name || '',
+        roadName: item.roadName || '',
+        subRoadName: item.subRoadName,
+        subSubRoadName: item.subSubRoadName || '',
         width,
         height,
         squareFeet,
         costPerSqFt,
         totalCost,
-        developmentStatus: (item.developmentStatus || item.development_status || 'undeveloped') as 'developed' | 'undeveloped' | 'in_progress',
-        roadType: (item.roadType || item.road_type || 'main') as 'main' | 'sub',
-        createdAt: item.createdAt || item.created_at || new Date().toISOString().split('T')[0]
+        developmentStatus: (item.developmentStatus || 'undeveloped') as 'developed' | 'undeveloped' | 'in_progress',
+        roadType: (item.roadType || 'main') as 'main' | 'sub',
+        createdAt: item.createdAt || new Date().toISOString().split('T')[0]
       };
       
       console.log(`✅ Normalized item ${index}:`, normalizedItem);
@@ -593,7 +593,7 @@ export function RoadDevelopment() {
         currency: 'LKR',
         minimumFractionDigits: 0,
       }).format(amount);
-    } catch (error) {
+    } catch {
       return `Rs. ${amount.toLocaleString()}`;
     }
   };
@@ -827,7 +827,7 @@ export function RoadDevelopment() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Development Status *</label>
               <select
                 value={formData.developmentStatus}
-                onChange={(e) => setFormData({ ...formData, developmentStatus: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, developmentStatus: e.target.value as 'developed' | 'undeveloped' | 'in_progress' })}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
@@ -952,7 +952,7 @@ export function RoadDevelopment() {
         {filteredData.length === 0 && (developmentData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <div className="text-lg font-medium mb-2">No development projects found</div>
-            <div className="text-sm">Click "Add Development Project" to create your first project</div>
+            <div className="text-sm">Click &quot;Add Development Project&quot; to create your first project</div>
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">

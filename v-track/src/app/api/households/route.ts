@@ -49,6 +49,19 @@ export async function POST(request: Request) {
 
     // Then insert all members
     if (members.length > 0) {
+      // Check for duplicate NICs before inserting
+      const nics = members.map((m: { nic: string }) => m.nic);
+      const { data: existingMembers } = await supabase
+        .from('members')
+        .select('nic')
+        .in('nic', nics)
+        .eq('is_deleted', false);
+
+      if (existingMembers && existingMembers.length > 0) {
+        const duplicateNICs = existingMembers.map(m => m.nic).join(', ');
+        throw new Error(`Duplicate NIC(s) found: ${duplicateNICs}. These members already exist in the system.`);
+      }
+
       const membersWithHouseholdId = members.map((member: {
         fullName: string;
         nameWithInitial: string;
@@ -68,6 +81,9 @@ export async function POST(request: Request) {
         whatsappNumber?: string;
         isDrugUser?: boolean;
         isThief?: boolean;
+        mahapola?: boolean;
+        aswasuma?: boolean;
+        wadihitiDimana?: boolean;
       }) => ({
         household_id: household.id,
         full_name: member.fullName,
@@ -88,6 +104,9 @@ export async function POST(request: Request) {
         whatsapp_number: member.whatsappNumber,
         is_drug_user: member.isDrugUser || false,
         is_thief: member.isThief || false,
+        mahapola: member.mahapola || false,
+        aswasuma: member.aswasuma || false,
+        wadihiti_dimana: member.wadihitiDimana || false,
       }));
 
       const { error: membersError } = await supabase
@@ -104,8 +123,9 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Error creating household:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create household';
     return NextResponse.json(
-      { error: 'Failed to create household' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

@@ -200,7 +200,7 @@ export default function RoadDetails() {
 
     try {
       let endpoint = '';
-      let payload: Record<string, any> = {};
+      let payload: Record<string, string | boolean | undefined> = {};
 
       switch (activeTab) {
         case 'roads':
@@ -331,45 +331,25 @@ export default function RoadDetails() {
     setSelectedSubRoad('');
   };
 
-  const handleEdit = (item: Record<string, any>, type: ActiveTab) => {
+  const handleEdit = (item: { address?: string; member?: string; name?: string; parent_sub_road_id?: string; sub_road_id?: string; road_id?: string; development_status?: string; id: string }, type: ActiveTab) => {
     if (type === 'addresses') {
-      setFormData({ ...formData, address: item.address, member: item.member || '', name: '' });
+      setFormData({ ...formData, address: item.address || '', member: item.member || '', name: '' });
     } else {
       setFormData({ 
         ...formData, 
-        name: item.name, 
-        development_status: item.development_status || 'undeveloped' 
+        name: item.name || '', 
+        development_status: (item.development_status as 'developed' | 'undeveloped') || 'undeveloped' 
       });
     }
     setEditingItem(item.id);
     setShowAddForm(true);
     
     if (type !== 'roads') {
-      setSelectedRoad(item.road_id);
+      setSelectedRoad(item.road_id || '');
     }
     if (type === 'sub-sub-roads' || type === 'addresses') {
-      setSelectedSubRoad(item.parent_sub_road_id || item.sub_road_id);
+      setSelectedSubRoad(item.parent_sub_road_id || item.sub_road_id || '');
     }
-  };
-
-  const toggleRoadExpansion = (roadId: string) => {
-    const newExpanded = new Set(expandedRoads);
-    if (newExpanded.has(roadId)) {
-      newExpanded.delete(roadId);
-    } else {
-      newExpanded.add(roadId);
-    }
-    setExpandedRoads(newExpanded);
-  };
-
-  const toggleSubRoadExpansion = (subRoadId: string) => {
-    const newExpanded = new Set(expandedSubRoads);
-    if (newExpanded.has(subRoadId)) {
-      newExpanded.delete(subRoadId);
-    } else {
-      newExpanded.add(subRoadId);
-    }
-    setExpandedSubRoads(newExpanded);
   };
 
   const getSubRoadsForRoad = (roadId: string) => 

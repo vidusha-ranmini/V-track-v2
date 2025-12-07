@@ -53,7 +53,20 @@ export async function GET(request: Request) {
     }
 
     // Transform the data to match our component interface
-    const transformedData = (data || []).map((item: any) => ({
+    const transformedData = (data || []).map((item: {
+      id: string;
+      road_name?: string;
+      sub_road_name?: string;
+      sub_sub_road_name?: string;
+      width?: number;
+      height?: number;
+      square_feet?: number;
+      cost_per_sq_ft?: number;
+      total_cost?: number;
+      development_status?: string;
+      created_at?: string;
+      updated_at?: string;
+    }) => ({
       id: item.id,
       roadName: item.road_name || 'Unknown Road',
       subRoadName: item.sub_road_name,
@@ -64,7 +77,6 @@ export async function GET(request: Request) {
       costPerSqFt: Number(item.cost_per_sq_ft) || 400,
       totalCost: Number(item.total_cost) || 0,
       developmentStatus: item.development_status || 'undeveloped',
-      roadType: item.road_type || 'main',
       createdAt: item.created_at || new Date().toISOString()
     }));
 
@@ -126,7 +138,7 @@ export async function POST(request: Request) {
     const supabase = createAdminClient();
     
     // Prepare insert data with database field names
-    let insertData = {
+    const insertData = {
       road_id,
       parent_sub_road_id,
       name,
@@ -211,7 +223,14 @@ export async function PUT(request: Request) {
     const { createAdminClient } = await import('@/lib/supabase');
     const supabase = createAdminClient();
     
-    const updateData: any = {
+    const updateData: {
+      width: number;
+      height: number;
+      square_feet: number;
+      cost_per_sq_ft: number;
+      total_cost: number;
+      development_status: string;
+    } = {
       width,
       height,
       square_feet,
@@ -229,7 +248,7 @@ export async function PUT(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating road development:', error);
     return NextResponse.json(
@@ -255,7 +274,7 @@ export async function DELETE(request: Request) {
     const supabase = createAdminClient();
     
     // Soft delete by setting is_deleted to true
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('sub_sub_roads')
       .update({ is_deleted: true })
       .eq('id', id)

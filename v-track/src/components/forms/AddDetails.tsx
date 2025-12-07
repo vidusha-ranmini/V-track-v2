@@ -23,6 +23,9 @@ interface Member {
   whatsappNumber: string;
   isDrugUser: boolean;
   isThief: boolean;
+  mahapola: boolean;
+  aswasuma: boolean;
+  wadihitiDimana: boolean;
 }
 
 export default function AddDetails() {
@@ -66,6 +69,9 @@ export default function AddDetails() {
     whatsappNumber: '',
     isDrugUser: false,
     isThief: false,
+    mahapola: false,
+    aswasuma: false,
+    wadihitiDimana: false,
   });
 
   useEffect(() => {
@@ -186,6 +192,9 @@ export default function AddDetails() {
         whatsappNumber: '',
         isDrugUser: false,
         isThief: false,
+        mahapola: false,
+        aswasuma: false,
+        wadihitiDimana: false,
       });
     }
   };
@@ -226,9 +235,21 @@ export default function AddDetails() {
         setMembers([]);
       } else {
         const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'An error occurred while saving household details.';
+        
+        // Provide specific guidance based on error type
+        let detailedMessage = errorMessage;
+        if (errorMessage.includes('Duplicate NIC')) {
+          detailedMessage += '\n\nPlease check the NIC numbers and remove any members that already exist in the system.';
+        } else if (errorMessage.includes('unique constraint')) {
+          detailedMessage += '\n\nOne or more members already exist in the system. Please verify the NIC numbers.';
+        } else if (errorMessage.includes('required')) {
+          detailedMessage += '\n\nPlease ensure all required fields are filled in correctly.';
+        }
+        
         showError(
           'Failed to Save Household',
-          errorData.error || 'An error occurred while saving household details. Please try again.'
+          detailedMessage
         );
       }
     } catch (error) {
@@ -634,6 +655,41 @@ export default function AddDetails() {
                 <span className="text-sm text-gray-600">Theft monitoring</span>
                 <span className="ml-2 text-xs text-gray-800 italic">(shown with black dot)</span>
               </label>
+            </div>
+
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Government Benefits</h4>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={currentMember.mahapola}
+                    onChange={(e) => setCurrentMember({ ...currentMember, mahapola: e.target.checked })}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">Mahapola</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={currentMember.aswasuma}
+                    onChange={(e) => setCurrentMember({ ...currentMember, aswasuma: e.target.checked })}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">Aswasuma</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={currentMember.wadihitiDimana}
+                    onChange={(e) => setCurrentMember({ ...currentMember, wadihitiDimana: e.target.checked })}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">Wadihiti Dimana</span>
+                </label>
+              </div>
             </div>
 
             <div className="mt-6 flex gap-4">

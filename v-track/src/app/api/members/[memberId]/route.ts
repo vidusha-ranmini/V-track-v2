@@ -29,7 +29,10 @@ export async function PUT(
       land_house_status,
       whatsapp_number,
       is_drug_user,
-      is_thief
+      is_thief,
+      mahapola,
+      aswasuma,
+      wadihiti_dimana
     } = body;
     const { memberId } = await params;
 
@@ -77,6 +80,9 @@ export async function PUT(
         whatsapp_number,
         is_drug_user: is_drug_user || false,
         is_thief: is_thief || false,
+        mahapola: mahapola || false,
+        aswasuma: aswasuma || false,
+        wadihiti_dimana: wadihiti_dimana || false,
         updated_at: new Date().toISOString()
       })
       .eq('id', memberId)

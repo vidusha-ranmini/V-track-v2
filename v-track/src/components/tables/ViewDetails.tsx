@@ -27,6 +27,9 @@ interface Member {
   workplace_location?: string;
   is_drug_user?: boolean;
   is_thief?: boolean;
+  mahapola?: boolean;
+  aswasuma?: boolean;
+  wadihiti_dimana?: boolean;
   is_deleted: boolean;
   // Address data from household -> addresses relationship
   address?: string;
@@ -66,7 +69,7 @@ export default function ViewDetails() {
   const [filters, setFilters] = useState({
     residentType: '',
     occupation: '',
-    gender: '',
+    beneficiary: '',
     road: '',
     subRoad: '',
   });
@@ -168,9 +171,15 @@ export default function ViewDetails() {
       filtered = filtered.filter(member => member.occupation === filters.occupation);
     }
 
-    // Gender filter
-    if (filters.gender) {
-      filtered = filtered.filter(member => member.gender === filters.gender);
+    // Beneficiary filter
+    if (filters.beneficiary) {
+      filtered = filtered.filter(member => {
+        const memberData = member as Member & { mahapola?: boolean; aswasuma?: boolean; wadihiti_dimana?: boolean };
+        if (filters.beneficiary === 'mahapola') return memberData.mahapola;
+        if (filters.beneficiary === 'aswasuma') return memberData.aswasuma;
+        if (filters.beneficiary === 'wadihiti_dimana') return memberData.wadihiti_dimana;
+        return false;
+      });
     }
 
     // Road filter
@@ -379,7 +388,10 @@ export default function ViewDetails() {
         workplace_address: editingMember.workplace_address,
         workplace_location: editingMember.workplace_location,
         is_drug_user: editingMember.is_drug_user,
-        is_thief: editingMember.is_thief
+        is_thief: editingMember.is_thief,
+        mahapola: editingMember.mahapola,
+        aswasuma: editingMember.aswasuma,
+        wadihiti_dimana: editingMember.wadihiti_dimana
       };
 
       const response = await fetch(`/api/members/${editingMember.id}`, {
@@ -555,16 +567,16 @@ export default function ViewDetails() {
             <option value="other">Other</option>
           </select>
 
-          {/* Gender Filter */}
+          {/* Beneficiary Filter */}
           <select
-            value={filters.gender}
-            onChange={(e) => setFilters({...filters, gender: e.target.value})}
+            value={filters.beneficiary}
+            onChange={(e) => setFilters({...filters, beneficiary: e.target.value})}
             className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">All Genders</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
+            <option value="">All Beneficiaries</option>
+            <option value="mahapola">Mahapola</option>
+            <option value="aswasuma">Aswasuma</option>
+            <option value="wadihiti_dimana">Wadihiti Dimana</option>
           </select>
 
           {/* Export Button */}
@@ -585,7 +597,7 @@ export default function ViewDetails() {
               setFilters({
                 residentType: '',
                 occupation: '',
-                gender: '',
+                beneficiary: '',
                 road: '',
                 subRoad: '',
               });
@@ -1034,6 +1046,30 @@ export default function ViewDetails() {
                   </div>
                 )}
                 
+                {/* Government Benefits (Mahapola, Aswasuma, Wadihiti Dimana) */}
+                {(selectedMember.mahapola || selectedMember.aswasuma || selectedMember.wadihiti_dimana) && (
+                  <div className="mt-4">
+                    <h5 className="text-md font-medium text-gray-800 mb-3">Government Benefits</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedMember.mahapola && (
+                        <span className="inline-flex px-3 py-1 text-sm bg-indigo-100 text-indigo-800 rounded-full">
+                          Mahapola
+                        </span>
+                      )}
+                      {selectedMember.aswasuma && (
+                        <span className="inline-flex px-3 py-1 text-sm bg-purple-100 text-purple-800 rounded-full">
+                          Aswasuma
+                        </span>
+                      )}
+                      {selectedMember.wadihiti_dimana && (
+                        <span className="inline-flex px-3 py-1 text-sm bg-pink-100 text-pink-800 rounded-full">
+                          Wadihiti Dimana
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
                 {(!selectedMember.offers_receiving || selectedMember.offers_receiving.length === 0) && (
                   <div>
                     <h5 className="text-md font-medium text-gray-800 mb-3">Government Offers & Benefits</h5>
@@ -1384,6 +1420,68 @@ export default function ViewDetails() {
                       placeholder="Enter workplace location/city"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Land and House Status */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900 flex items-center">
+                  <Home className="w-5 h-5 mr-2 text-green-600" />
+                  Land & House Status
+                </h4>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Land & House Status</label>
+                  <select
+                    value={editingMember.land_house_status || ''}
+                    onChange={(e) => handleEditChange('land_house_status', e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select Status</option>
+                    <option value="plot_of_land">Plot of Land</option>
+                    <option value="no_house">No House</option>
+                    <option value="no_house_and_land">No House and Land</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Government Benefits */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900 flex items-center">
+                  <Calendar className="w-5 h-5 mr-2 text-indigo-600" />
+                  Government Benefits
+                </h4>
+                
+                <div className="space-y-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editingMember.mahapola || false}
+                      onChange={(e) => handleEditChange('mahapola', e.target.checked)}
+                      className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Mahapola</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editingMember.aswasuma || false}
+                      onChange={(e) => handleEditChange('aswasuma', e.target.checked)}
+                      className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Aswasuma</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editingMember.wadihiti_dimana || false}
+                      onChange={(e) => handleEditChange('wadihiti_dimana', e.target.checked)}
+                      className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Wadihiti Dimana</span>
+                  </label>
                 </div>
               </div>
             </div>
