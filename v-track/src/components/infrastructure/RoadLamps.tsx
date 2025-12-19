@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Lightbulb, Plus, Edit, Trash2, Search, MapPin, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Lightbulb, Plus, Edit, Trash2, Search, MapPin, ToggleLeft, ToggleRight, Printer } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface RoadLamp {
@@ -383,6 +383,158 @@ export default function RoadLamps() {
     }
   };
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Road Lamp Details Report</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color: #333;
+          }
+          h1 {
+            text-align: center;
+            color: #1f2937;
+            margin-bottom: 10px;
+          }
+          .report-date {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 20px;
+          }
+          .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f3f4f6;
+            border-radius: 8px;
+          }
+          .stat-card {
+            text-align: center;
+          }
+          .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+          }
+          .total { color: #2563eb; }
+          .working { color: #16a34a; }
+          .broken { color: #dc2626; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
+          }
+          th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+          }
+          tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+          .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+          }
+          .status-working {
+            background-color: #d1fae5;
+            color: #065f46;
+          }
+          .status-broken {
+            background-color: #fee2e2;
+            color: #991b1b;
+          }
+          @media print {
+            body { margin: 0; }
+            .stats { break-inside: avoid; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Road Lamp Details Report</h1>
+        <div class="report-date">Generated on ${new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}</div>
+        
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value total">${stats.total}</div>
+            <div class="stat-label">Total Lamps</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value working">${stats.working}</div>
+            <div class="stat-label">Working</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value broken">${stats.broken}</div>
+            <div class="stat-label">Broken</div>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Lamp Number</th>
+              <th>Status</th>
+              <th>Road</th>
+              <th>Sub Road</th>
+              <th>Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredLamps.map(lamp => `
+              <tr>
+                <td>${lamp.lamp_number}</td>
+                <td>
+                  <span class="status-badge status-${lamp.status}">
+                    ${lamp.status === 'working' ? 'Working' : 'Broken'}
+                  </span>
+                </td>
+                <td>${lamp.road_name || '-'}</td>
+                <td>${lamp.sub_road_name || '-'}</td>
+                <td>${lamp.address || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  };
+
   const stats = {
     total: filteredLamps.length,
     working: filteredLamps.filter(l => l.status === 'working').length,
@@ -487,13 +639,22 @@ export default function RoadLamps() {
           </div>
 
           {/* Add Button */}
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Road Lamp
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Print PDF
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Road Lamp
+            </button>
+          </div>
         </div>
       </div>
 
