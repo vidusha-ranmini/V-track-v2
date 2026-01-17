@@ -49,17 +49,22 @@ export async function POST(request: Request) {
 
     // Then insert all members
     if (members.length > 0) {
-      // Check for duplicate NICs before inserting
-      const nics = members.map((m: { nic: string }) => m.nic);
-      const { data: existingMembers } = await supabase
-        .from('members')
-        .select('nic')
-        .in('nic', nics)
-        .eq('is_deleted', false);
+      // Check for duplicate NICs before inserting (only for members with valid NICs)
+      const nics = members
+        .map((m: { nic: string }) => m.nic)
+        .filter((nic: string) => nic && nic.trim() !== '');
+      
+      if (nics.length > 0) {
+        const { data: existingMembers } = await supabase
+          .from('members')
+          .select('nic')
+          .in('nic', nics)
+          .eq('is_deleted', false);
 
-      if (existingMembers && existingMembers.length > 0) {
-        const duplicateNICs = existingMembers.map(m => m.nic).join(', ');
-        throw new Error(`Duplicate NIC(s) found: ${duplicateNICs}. These members already exist in the system.`);
+        if (existingMembers && existingMembers.length > 0) {
+          const duplicateNICs = existingMembers.map(m => m.nic).join(', ');
+          throw new Error(`Duplicate NIC(s) found: ${duplicateNICs}. These members already exist in the system.`);
+        }
       }
 
       const membersWithHouseholdId = members.map((member: {
@@ -89,7 +94,7 @@ export async function POST(request: Request) {
         full_name: member.fullName,
         name_with_initial: member.nameWithInitial,
         member_type: member.memberType,
-        nic: member.nic,
+        nic: member.nic && member.nic.trim() !== '' ? member.nic : null,
         gender: member.gender,
         age: member.age,
         occupation: member.occupation,
@@ -100,7 +105,7 @@ export async function POST(request: Request) {
         other_occupation: member.otherOccupation,
         offers_receiving: member.offersReceiving,
         is_disabled: member.isDisabled,
-        land_house_status: member.landHouseStatus,
+        land_house_status: member.landHouseStatus || null,
         whatsapp_number: member.whatsappNumber,
         is_drug_user: member.isDrugUser || false,
         is_thief: member.isThief || false,
