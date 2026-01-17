@@ -620,6 +620,7 @@ export default function AddDetails() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="">Select Status</option>
+                  <option value="land_and_house">Land and House</option>
                   <option value="plot_of_land">Plot of Land</option>
                   <option value="no_house">No House</option>
                   <option value="no_house_and_land">No House and Land</option>
