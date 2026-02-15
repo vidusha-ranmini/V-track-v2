@@ -43,21 +43,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { lamp_number, road_id, sub_road_id, address_id, status } = body;
 
-    // Validate required fields
-    if (!lamp_number || !road_id || !sub_road_id || !address_id) {
+    // Validate required fields (sub_road_id is optional for main road lamps)
+    if (!lamp_number || !road_id || !address_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    // Check if lamp number already exists
-    const { data: existing } = await supabase
-      .from('road_lamps')
-      .select('id')
-      .eq('lamp_number', lamp_number)
-      .eq('is_deleted', false)
-      .single();
-
-    if (existing) {
-      return NextResponse.json({ error: 'Lamp number already exists' }, { status: 409 });
     }
 
     const { data, error } = await supabase
@@ -65,7 +53,7 @@ export async function POST(request: NextRequest) {
       .insert({
         lamp_number,
         road_id,
-        sub_road_id,
+        sub_road_id: sub_road_id || null,
         address_id,
         status: status || 'working'
       })

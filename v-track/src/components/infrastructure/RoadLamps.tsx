@@ -176,6 +176,25 @@ export default function RoadLamps() {
           const activeSubRoads = data.filter((sr: SubRoad) => !sr.is_deleted);
           setSubRoads(activeSubRoads);
           console.log('Active sub-roads set:', activeSubRoads);
+          
+          // If no sub-roads exist, fetch addresses directly from main road
+          if (activeSubRoads.length === 0) {
+            setIsLoadingAddresses(true);
+            try {
+              const addressResponse = await fetch(`/api/roads/${roadId}/addresses`);
+              if (addressResponse.ok) {
+                const addressData = await addressResponse.json();
+                const activeAddresses = addressData.filter((addr: Address) => !addr.is_deleted);
+                setAddresses(activeAddresses);
+                console.log('Main road addresses loaded:', activeAddresses);
+              }
+            } catch (addressError) {
+              console.error('Error fetching main road addresses:', addressError);
+              setAddresses([]);
+            } finally {
+              setIsLoadingAddresses(false);
+            }
+          }
         } else {
           const errorText = await response.text();
           console.error('Failed to fetch sub-roads:', response.status, errorText);
@@ -600,8 +619,8 @@ export default function RoadLamps() {
 
       {/* Controls */}
       <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
+          <div className="flex flex-row gap-4 flex-wrap">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -705,9 +724,8 @@ export default function RoadLamps() {
 
             {/* Sub Road */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sub Road</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sub Road <span className="text-gray-400 text-xs">(Optional)</span></label>
               <select
-                required={subRoads.length > 0}
                 value={lampData.sub_road_id}
                 onChange={(e) => handleSubRoadChange(e.target.value)}
                 disabled={!lampData.road_id || isLoadingSubRoads}
@@ -739,10 +757,10 @@ export default function RoadLamps() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
               <select
-                required={addresses.length > 0}
+                required
                 value={lampData.address_id}
                 onChange={(e) => setLampData({...lampData, address_id: e.target.value})}
-                disabled={(!lampData.sub_road_id && subRoads.length > 0) || isLoadingAddresses}
+                disabled={isLoadingAddresses}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               >
                 <option value="">

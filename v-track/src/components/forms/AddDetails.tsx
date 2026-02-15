@@ -201,6 +201,14 @@ export default function AddDetails() {
     }
   };
 
+  const editMember = (memberId: number) => {
+    const memberToEdit = members.find(member => member.id === memberId);
+    if (memberToEdit) {
+      setCurrentMember(memberToEdit);
+      setMembers(members.filter(member => member.id !== memberId));
+    }
+  };
+
   const removeMember = (memberId: number) => {
     setMembers(members.filter(member => member.id !== memberId));
   };
@@ -431,31 +439,33 @@ export default function AddDetails() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
+                  Full Name <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
                   value={currentMember.fullName}
                   onChange={(e) => setCurrentMember({ ...currentMember, fullName: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Enter full name"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Name with Initial
+                  Name with Initial <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <input
                   type="text"
                   value={currentMember.nameWithInitial}
                   onChange={(e) => setCurrentMember({ ...currentMember, nameWithInitial: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="e.g., A.B. Silva"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Member Type
+                  Member Type <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <select
                   value={currentMember.memberType}
@@ -469,19 +479,20 @@ export default function AddDetails() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  NIC
+                  NIC <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <input
                   type="text"
                   value={currentMember.nic}
                   onChange={(e) => handleNICChange(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Enter NIC number"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Gender
+                  Gender <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <select
                   value={currentMember.gender}
@@ -511,7 +522,7 @@ export default function AddDetails() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Occupation
+                  Occupation <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <select
                   value={currentMember.occupation}
@@ -529,7 +540,7 @@ export default function AddDetails() {
               {currentMember.occupation && !['student', 'university_student', 'no', 'abroad'].includes(currentMember.occupation) && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Workplace
+                    Workplace <span className="text-gray-400 text-xs">(Optional)</span>
                   </label>
                   <input
                     type="text"
@@ -545,7 +556,7 @@ export default function AddDetails() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      School Name
+                      School Name <span className="text-gray-400 text-xs">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -556,7 +567,7 @@ export default function AddDetails() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Grade
+                      Grade <span className="text-gray-400 text-xs">(Optional)</span>
                     </label>
                     <input
                       type="number"
@@ -573,7 +584,7 @@ export default function AddDetails() {
               {currentMember.occupation === 'university_student' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    University Name
+                    University Name <span className="text-gray-400 text-xs">(Optional)</span>
                   </label>
                   <input
                     type="text"
@@ -587,7 +598,7 @@ export default function AddDetails() {
               {currentMember.occupation === 'other' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Other Occupation
+                    Other Occupation <span className="text-gray-400 text-xs">(Optional)</span>
                   </label>
                   <input
                     type="text"
@@ -600,7 +611,7 @@ export default function AddDetails() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  WhatsApp Number
+                  WhatsApp Number <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <input
                   type="tel"
@@ -612,7 +623,7 @@ export default function AddDetails() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Land and House Status
+                  Land and House Status <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 <select
                   value={currentMember.landHouseStatus}
@@ -738,6 +749,12 @@ export default function AddDetails() {
                         <td className="px-4 py-2">{member.occupation}</td>
                         <td className="px-4 py-2">{member.workplace || '-'}</td>
                         <td className="px-4 py-2">
+                          <button
+                            onClick={() => editMember(member.id!)}
+                            className="text-blue-600 hover:text-blue-800 mr-4"
+                          >
+                            Edit
+                          </button>
                           <button
                             onClick={() => removeMember(member.id!)}
                             className="text-red-600 hover:text-red-800"
