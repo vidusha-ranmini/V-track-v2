@@ -128,6 +128,22 @@ export default function RoadLamps() {
     }
   };
 
+  const fetchMainRoadAddresses = async (roadId: string) => {
+    try {
+      const response = await fetch(`/api/roads/${roadId}/addresses`);
+      if (response.ok) {
+        const data = await response.json();
+        const activeAddresses = data.filter((addr: Address) => !addr.is_deleted);
+        setAddresses(activeAddresses);
+      } else {
+        setAddresses([]);
+      }
+    } catch (error) {
+      console.error('Error fetching main road addresses:', error);
+      setAddresses([]);
+    }
+  };
+
   const filterLamps = () => {
     let filtered = lamps.filter(lamp => !lamp.is_deleted);
 
@@ -177,24 +193,10 @@ export default function RoadLamps() {
           setSubRoads(activeSubRoads);
           console.log('Active sub-roads set:', activeSubRoads);
           
-          // If no sub-roads exist, fetch addresses directly from main road
-          if (activeSubRoads.length === 0) {
-            setIsLoadingAddresses(true);
-            try {
-              const addressResponse = await fetch(`/api/roads/${roadId}/addresses`);
-              if (addressResponse.ok) {
-                const addressData = await addressResponse.json();
-                const activeAddresses = addressData.filter((addr: Address) => !addr.is_deleted);
-                setAddresses(activeAddresses);
-                console.log('Main road addresses loaded:', activeAddresses);
-              }
-            } catch (addressError) {
-              console.error('Error fetching main road addresses:', addressError);
-              setAddresses([]);
-            } finally {
-              setIsLoadingAddresses(false);
-            }
-          }
+          // Load main-road addresses for this road (sub-road selection can override this list)
+          setIsLoadingAddresses(true);
+          await fetchMainRoadAddresses(roadId);
+          setIsLoadingAddresses(false);
         } else {
           const errorText = await response.text();
           console.error('Failed to fetch sub-roads:', response.status, errorText);
@@ -253,6 +255,10 @@ export default function RoadLamps() {
       } finally {
         setIsLoadingAddresses(false);
       }
+    } else if (currentRoadId) {
+      setIsLoadingAddresses(true);
+      await fetchMainRoadAddresses(currentRoadId);
+      setIsLoadingAddresses(false);
     } else {
       console.log('Clearing addresses - no sub-road or road selected');
       setAddresses([]);
@@ -362,7 +368,7 @@ export default function RoadLamps() {
           setSubRoads(subRoadsData);
           console.log('Loaded sub-roads for editing:', subRoadsData);
           
-          // Then load addresses if sub-road is selected
+          // Then load addresses for selected scope
           if (lamp.sub_road_id) {
             setIsLoadingAddresses(true);
             const addressesResponse = await fetch(`/api/roads/${lamp.road_id}/sub-roads/${lamp.sub_road_id}/addresses`);
@@ -373,6 +379,10 @@ export default function RoadLamps() {
             } else {
               console.error('Failed to load addresses for editing');
             }
+            setIsLoadingAddresses(false);
+          } else {
+            setIsLoadingAddresses(true);
+            await fetchMainRoadAddresses(lamp.road_id);
             setIsLoadingAddresses(false);
           }
         } else {
