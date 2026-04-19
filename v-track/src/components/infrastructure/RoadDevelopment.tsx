@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Printer } from 'lucide-react';
 import { useConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
 
@@ -606,6 +607,192 @@ export function RoadDevelopment() {
     return getSquareFeet() * formData.costPerSqFt;
   };
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=900,height=700');
+    if (!printWindow) return;
+
+    const printStats = {
+      totalProjects: filteredData.length,
+      developedProjects: filteredData.filter((item) => item.developmentStatus === 'developed').length,
+      inProgressProjects: filteredData.filter((item) => item.developmentStatus === 'in_progress').length,
+      undevelopedProjects: filteredData.filter((item) => item.developmentStatus === 'undeveloped').length,
+      totalEstimatedCost: filteredData.reduce((sum, item) => sum + (Number(item.totalCost) || 0), 0)
+    };
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Road Development Status Report</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color: #333;
+          }
+          h1 {
+            text-align: center;
+            color: #1f2937;
+            margin-bottom: 10px;
+          }
+          .report-date {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 20px;
+          }
+          .stats {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+          }
+          .stat-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            background-color: #f9fafb;
+            text-align: center;
+          }
+          .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .stat-label {
+            color: #6b7280;
+            font-size: 12px;
+          }
+          .total { color: #111827; }
+          .developed { color: #16a34a; }
+          .progress { color: #ca8a04; }
+          .undeveloped { color: #dc2626; }
+          .cost { color: #2563eb; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+          }
+          th, td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+          }
+          th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+          }
+          tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+          .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+          }
+          .status-developed {
+            background-color: #dcfce7;
+            color: #166534;
+          }
+          .status-in_progress {
+            background-color: #fef9c3;
+            color: #854d0e;
+          }
+          .status-undeveloped {
+            background-color: #fee2e2;
+            color: #991b1b;
+          }
+          @media print {
+            body { margin: 0; }
+            .stats { break-inside: avoid; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Road Development Status Report</h1>
+        <div class="report-date">Generated on ${new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}</div>
+
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value total">${printStats.totalProjects}</div>
+            <div class="stat-label">Total Projects</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value developed">${printStats.developedProjects}</div>
+            <div class="stat-label">Developed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value progress">${printStats.inProgressProjects}</div>
+            <div class="stat-label">In Progress</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value undeveloped">${printStats.undevelopedProjects}</div>
+            <div class="stat-label">Undeveloped</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value cost">Rs. ${printStats.totalEstimatedCost.toLocaleString()}</div>
+            <div class="stat-label">Total Cost</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Road Details</th>
+              <th>Dimensions</th>
+              <th>Area (sq ft)</th>
+              <th>Cost/sq ft</th>
+              <th>Total Cost</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredData.map((item) => `
+              <tr>
+                <td>
+                  <div><strong>${item.roadName}</strong></div>
+                  ${item.subRoadName ? `<div>Sub: ${item.subRoadName}</div>` : ''}
+                  <div>Lane: ${item.subSubRoadName}</div>
+                </td>
+                <td>
+                  <div>Width: ${item.width || 0} ft</div>
+                  <div>Length: ${item.height || 0} ft</div>
+                </td>
+                <td>${(item.squareFeet || 0).toLocaleString()}</td>
+                <td>Rs. ${item.costPerSqFt || 0}</td>
+                <td>Rs. ${(item.totalCost || 0).toLocaleString()}</td>
+                <td>
+                  <span class="status-badge status-${item.developmentStatus}">
+                    ${item.developmentStatus.replace('_', ' ')}
+                  </span>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  };
+
   const uniqueRoadNames = Array.from(new Set(developmentData.map(item => item.roadName)));
   const availableSubRoads = subRoads.filter(sr => sr.road_id === formData.roadId);
 
@@ -637,12 +824,21 @@ export function RoadDevelopment() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Road Development Status</h1>
             <p className="text-gray-600">Track and manage road development projects across the area</p>
           </div>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
-          >
-            Add Development Project
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Print PDF
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
+            >
+              Add Development Project
+            </button>
+          </div>
         </div>
       </div>
 

@@ -41,7 +41,7 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { lamp_number, road_id, sub_road_id, address_id, status } = body;
+    const { lamp_number, road_id, sub_road_id, address_id, status, arm_broken } = body;
 
     // Validate required fields (sub_road_id is optional for main road lamps)
     if (!lamp_number || !road_id || !address_id) {
@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
         road_id,
         sub_road_id: sub_road_id || null,
         address_id,
-        status: status || 'working'
+        status: status || 'working',
+        arm_broken: status === 'broken' ? !!arm_broken : false
       })
       .select()
       .single();

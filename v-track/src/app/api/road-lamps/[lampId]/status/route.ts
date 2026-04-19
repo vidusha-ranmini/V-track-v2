@@ -19,12 +19,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 
+    const updatePayload: { status: string; arm_broken?: boolean; updated_at: string } = {
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    if (status === 'working') {
+      updatePayload.arm_broken = false;
+    }
+
     const { data, error } = await supabase
       .from('road_lamps')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', lampId)
       .select()
       .maybeSingle();

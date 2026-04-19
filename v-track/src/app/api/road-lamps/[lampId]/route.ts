@@ -11,7 +11,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { lamp_number, road_id, sub_road_id, address_id, status } = body;
+    const { lamp_number, road_id, sub_road_id, address_id, status, arm_broken } = body;
     const { lampId } = await params;
 
     // Validate required fields (sub_road_id is optional for main road lamps)
@@ -27,6 +27,7 @@ export async function PUT(
         sub_road_id: sub_road_id || null,
         address_id,
         status: status || 'working',
+        arm_broken: status === 'broken' ? !!arm_broken : false,
         updated_at: new Date().toISOString()
       })
       .eq('id', lampId)

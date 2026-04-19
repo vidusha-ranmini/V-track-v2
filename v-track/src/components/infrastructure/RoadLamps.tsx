@@ -11,6 +11,7 @@ interface RoadLamp {
   sub_road_id: string;
   address_id: string;
   status: 'working' | 'broken';
+  arm_broken?: boolean;
   created_at: string;
   updated_at: string;
   is_deleted: boolean;
@@ -62,7 +63,8 @@ export default function RoadLamps() {
     road_id: '',
     sub_road_id: '',
     address_id: '',
-    status: 'working' as 'working' | 'broken'
+    status: 'working' as 'working' | 'broken',
+    arm_broken: false
   });
 
   useEffect(() => {
@@ -329,7 +331,8 @@ export default function RoadLamps() {
       road_id: '',
       sub_road_id: '',
       address_id: '',
-      status: 'working'
+      status: 'working',
+      arm_broken: false
     });
     setEditingLamp(null);
     setShowAddForm(false);
@@ -349,7 +352,8 @@ export default function RoadLamps() {
       road_id: lamp.road_id,
       sub_road_id: lamp.sub_road_id,
       address_id: lamp.address_id,
-      status: lamp.status
+      status: lamp.status,
+      arm_broken: !!lamp.arm_broken
     });
     
     // Clear any previous data
@@ -492,6 +496,10 @@ export default function RoadLamps() {
             background-color: #fee2e2;
             color: #991b1b;
           }
+          .status-arm-broken {
+            background-color: #ffedd5;
+            color: #9a3412;
+          }
           @media print {
             body { margin: 0; }
             .stats { break-inside: avoid; }
@@ -540,8 +548,8 @@ export default function RoadLamps() {
               <tr>
                 <td>${lamp.lamp_number}</td>
                 <td>
-                  <span class="status-badge status-${lamp.status}">
-                    ${lamp.status === 'working' ? 'Working' : 'Broken'}
+                  <span class="status-badge ${lamp.status === 'working' ? 'status-working' : lamp.arm_broken ? 'status-arm-broken' : 'status-broken'}">
+                    ${lamp.status === 'working' ? 'Working' : lamp.arm_broken ? 'Arm Broken' : 'Broken'}
                   </span>
                 </td>
                 <td>${lamp.road_name || '-'}</td>
@@ -706,6 +714,18 @@ export default function RoadLamps() {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., L001"
               />
+
+              {lampData.status === 'broken' && (
+                <label className="mt-3 flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={lampData.arm_broken}
+                    onChange={(e) => setLampData({ ...lampData, arm_broken: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                  />
+                  Arm broken
+                </label>
+              )}
             </div>
 
             {/* Road */}
@@ -800,7 +820,14 @@ export default function RoadLamps() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select
                 value={lampData.status}
-                onChange={(e) => setLampData({...lampData, status: e.target.value as 'working' | 'broken'})}
+                onChange={(e) => {
+                  const status = e.target.value as 'working' | 'broken';
+                  setLampData({
+                    ...lampData,
+                    status,
+                    arm_broken: status === 'broken' ? lampData.arm_broken : false
+                  });
+                }}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="working">Working</option>
@@ -858,7 +885,11 @@ export default function RoadLamps() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Lightbulb className={`w-5 h-5 mr-3 ${
-                        lamp.status === 'working' ? 'text-green-600' : 'text-red-600'
+                        lamp.status === 'working'
+                          ? 'text-green-600'
+                          : lamp.arm_broken
+                            ? 'text-orange-600'
+                            : 'text-red-600'
                       }`} />
                       <div>
                         <div className="text-sm font-medium text-gray-900">{lamp.lamp_number}</div>
@@ -869,17 +900,21 @@ export default function RoadLamps() {
                     <div className="flex items-center justify-between">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         lamp.status === 'working' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-green-100 text-green-800'
+                          : lamp.arm_broken
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-red-100 text-red-800'
                       }`}>
-                        {lamp.status.toUpperCase()}
+                        {lamp.status === 'broken' && lamp.arm_broken ? 'ARM BROKEN' : lamp.status.toUpperCase()}
                       </span>
                       <button
                         onClick={() => toggleStatus(lamp.id, lamp.status)}
                         className={`ml-2 p-1 rounded transition-colors ${
                           lamp.status === 'working'
                             ? 'bg-green-100 hover:bg-green-200 text-green-700'
-                            : 'bg-red-100 hover:bg-red-200 text-red-700'
+                            : lamp.arm_broken
+                              ? 'bg-orange-100 hover:bg-orange-200 text-orange-700'
+                              : 'bg-red-100 hover:bg-red-200 text-red-700'
                         }`}
                         title={`Mark as ${lamp.status === 'working' ? 'broken' : 'working'}`}
                       >

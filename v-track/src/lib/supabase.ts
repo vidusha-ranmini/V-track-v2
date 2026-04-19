@@ -105,6 +105,7 @@ export interface RoadLamp {
   sub_road_id: string;
   address_id: string;
   status: 'working' | 'broken';
+  arm_broken?: boolean;
   created_at: string;
   updated_at: string;
   is_deleted: boolean;

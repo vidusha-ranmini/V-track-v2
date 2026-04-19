@@ -114,10 +114,14 @@ CREATE TABLE IF NOT EXISTS road_lamps (
     sub_road_id UUID REFERENCES sub_roads(id) ON DELETE CASCADE,
     address_id UUID REFERENCES addresses(id) ON DELETE CASCADE,
     status TEXT CHECK (status IN ('working', 'broken')) DEFAULT 'working',
+    arm_broken BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     is_deleted BOOLEAN DEFAULT FALSE
 );
+
+ALTER TABLE road_lamps
+ADD COLUMN IF NOT EXISTS arm_broken BOOLEAN DEFAULT FALSE;
 
 -- Deletion Log table for audit trail
 CREATE TABLE IF NOT EXISTS deletion_log (
