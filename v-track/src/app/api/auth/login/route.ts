@@ -3,27 +3,64 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { logUserActivity, getClientIP, getUserAgent } from '../../../../lib/activityLogger';
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const loginAttempts = new Map<string, { count: number; windowStart: number }>();
+
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is not configured`);
+  }
+  return value;
+}
+
+function getLoginAttemptKey(request: NextRequest, username: string): string {
+  const ip = getClientIP(request) || 'unknown-ip';
+  return `${ip}:${username}`;
+}
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+
+  if (!entry) {
+    return false;
+  }
+
+  if (now - entry.windowStart > LOGIN_ATTEMPT_WINDOW_MS) {
+    loginAttempts.delete(key);
+    return false;
+  }
+
+  return entry.count >= MAX_LOGIN_ATTEMPTS;
+}
+
+function recordFailedAttempt(key: string): void {
+  const now = Date.now();
+  const existing = loginAttempts.get(key);
+
+  if (!existing || now - existing.windowStart > LOGIN_ATTEMPT_WINDOW_MS) {
+    loginAttempts.set(key, { count: 1, windowStart: now });
+    return;
+  }
+
+  loginAttempts.set(key, {
+    count: existing.count + 1,
+    windowStart: existing.windowStart,
+  });
+}
+
+function clearFailedAttempts(key: string): void {
+  loginAttempts.delete(key);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔐 Login API called');
-    
-    // Safely parse JSON with error handling
-    let body;
+    let body: { username?: string; password?: string };
     try {
-      const text = await request.text();
-      console.log('📦 Raw request body:', text || 'Empty body');
-      
-      if (!text) {
-        console.log('❌ Empty request body');
-        return NextResponse.json(
-          { error: 'Request body is required' },
-          { status: 400 }
-        );
-      }
-      
-      body = JSON.parse(text);
-    } catch (parseError) {
-      console.log('❌ JSON parse error:', parseError);
+      body = await request.json();
+    } catch {
       return NextResponse.json(
         { error: 'Invalid JSON in request body' },
         { status: 400 }
@@ -31,62 +68,58 @@ export async function POST(request: NextRequest) {
     }
 
     const { username, password } = body;
-    console.log('📝 Parsed data:', { username, password: password ? '***' : 'undefined' });
 
-    // Validate input
     if (!username || !password) {
-      console.log('❌ Missing username or password');
       return NextResponse.json(
         { error: 'Username and password are required' },
         { status: 400 }
       );
     }
 
-    // Get environment variables
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    
-    console.log('🔍 Environment check:', {
-      adminUsername: adminUsername ? 'Set' : 'Missing',
-      adminPasswordHash: adminPasswordHash ? 'Set' : 'Missing',
-      jwtSecret: jwtSecret ? 'Set' : 'Missing'
-    });
+    const loginAttemptKey = getLoginAttemptKey(request, username);
+    if (isRateLimited(loginAttemptKey)) {
+      return NextResponse.json(
+        { error: 'Too many failed login attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
 
-    // Check username
+    const adminUsername = getRequiredEnv('ADMIN_USERNAME');
+    const adminPasswordHash = getRequiredEnv('ADMIN_PASSWORD_HASH');
+    const jwtSecret = getRequiredEnv('JWT_SECRET');
+
+    if (jwtSecret.length < 32) {
+      throw new Error('JWT_SECRET must be at least 32 characters long');
+    }
+
+    if (
+      adminPasswordHash === 'your_hashed_password_here' ||
+      adminPasswordHash === 'SECURE_HASH_OF_YOUR_PASSWORD'
+    ) {
+      throw new Error('ADMIN_PASSWORD_HASH is using a placeholder value');
+    }
+
     if (username !== adminUsername) {
-      console.log('❌ Invalid username');
+      recordFailedAttempt(loginAttemptKey);
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    // Check password
     let isValidPassword = false;
-    
-    if (!adminPasswordHash || adminPasswordHash === 'your_hashed_password_here') {
-      // Fallback for development - direct password comparison
-      console.log('⚠️ Using fallback password check');
-      isValidPassword = password === 'admin123';
-    } else {
-      // Use bcrypt verification
-      console.log('🔒 Using bcrypt verification');
-      try {
-        isValidPassword = await bcrypt.compare(password, adminPasswordHash);
-      } catch (error) {
-        console.log('❌ Bcrypt error:', error);
-        return NextResponse.json(
-          { error: 'Authentication system error' },
-          { status: 500 }
-        );
-      }
+    try {
+      isValidPassword = await bcrypt.compare(password, adminPasswordHash);
+    } catch {
+      return NextResponse.json(
+        { error: 'Authentication system error' },
+        { status: 500 }
+      );
     }
 
     if (!isValidPassword) {
-      console.log('❌ Invalid password');
+      recordFailedAttempt(loginAttemptKey);
       
-      // Log failed login attempt
       const clientIP = getClientIP(request);
       const userAgent = getUserAgent(request);
       
@@ -109,14 +142,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate token
+    clearFailedAttempts(loginAttemptKey);
+
     const user = { username, isAdmin: true as const };
     const token = jwt.sign(user, jwtSecret, { expiresIn: '24h' });
-    
-    // Log successful login activity
+
     const clientIP = getClientIP(request);
     const userAgent = getUserAgent(request);
-    
+
     await logUserActivity({
       username,
       action_type: 'login',
@@ -128,18 +161,27 @@ export async function POST(request: NextRequest) {
         success: true
       }
     });
-    
-    console.log('✅ Login successful');
-    return NextResponse.json({
+
+    const response = NextResponse.json({
       message: 'Login successful',
       token,
       user
     });
 
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24,
+    });
+
+    return response;
+
   } catch (error) {
-    console.error('💥 Login error:', error);
+    console.error('Login error:', error);
     return NextResponse.json(
-      { error: 'Internal server error: ' + (error as Error).message },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

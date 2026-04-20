@@ -5,12 +5,16 @@ import { getUserActivityLogs, getRecentLogins } from '../../../lib/activityLogge
 // Helper function to verify admin token
 function verifyAdminToken(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  const cookieToken = request.cookies.get('auth_token')?.value;
+  const token = bearerToken || cookieToken;
+
+  if (!token) return false;
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
     return false;
   }
-
-  const token = authHeader.substring(7);
-  const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
 
   try {
     const decoded = jwt.verify(token, jwtSecret) as { username: string; isAdmin: boolean };
@@ -22,11 +26,8 @@ function verifyAdminToken(request: NextRequest): boolean {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📊 Activity logs API called');
-
     // Verify admin authentication
     if (!verifyAdminToken(request)) {
-      console.log('❌ Unauthorized access to activity logs');
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
@@ -44,17 +45,6 @@ export async function GET(request: NextRequest) {
     const start_date = searchParams.get('start_date') || undefined;
     const end_date = searchParams.get('end_date') || undefined;
     const recent_logins_only = searchParams.get('recent_logins') === 'true';
-
-    console.log('🔍 Activity logs filters:', {
-      username,
-      action_type,
-      resource_type,
-      limit,
-      offset,
-      start_date,
-      end_date,
-      recent_logins_only
-    });
 
     // Handle recent logins request
     if (recent_logins_only) {
@@ -79,14 +69,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (error) {
-      console.log('❌ Error fetching activity logs:', error);
       return NextResponse.json(
         { error: 'Failed to fetch activity logs: ' + error },
         { status: 500 }
       );
     }
 
-    console.log('✅ Activity logs retrieved successfully');
     return NextResponse.json({
       success: true,
       data,
@@ -104,7 +92,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Activity logs API error:', error);
+    console.error('Activity logs API error:', error);
     return NextResponse.json(
       { error: 'Internal server error: ' + (error as Error).message },
       { status: 500 }
@@ -115,11 +103,8 @@ export async function GET(request: NextRequest) {
 // POST endpoint to manually log activities (if needed)
 export async function POST(request: NextRequest) {
   try {
-    console.log('📝 Manual activity log API called');
-
     // Verify admin authentication
     if (!verifyAdminToken(request)) {
-      console.log('❌ Unauthorized access to activity logs');
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
@@ -144,7 +129,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Manual activity log error:', error);
+    console.error('Manual activity log error:', error);
     return NextResponse.json(
       { error: 'Internal server error: ' + (error as Error).message },
       { status: 500 }

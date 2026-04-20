@@ -1,14 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is not configured`);
+  }
+  return value;
+}
+
+const supabaseUrl = getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL');
+const supabaseAnonKey = getRequiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
 // Client for frontend operations
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // For server-side operations, we'll create a separate admin client
 export const createAdminClient = () => {
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const supabaseServiceKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -16,15 +24,6 @@ export const createAdminClient = () => {
     }
   });
 };
-
-// Admin client for backend operations (server-side only)
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
 
 // Database types
 export interface Road {

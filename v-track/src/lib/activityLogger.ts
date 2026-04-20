@@ -1,4 +1,4 @@
-import { supabaseAdmin, UserActivityLog } from './supabase';
+import { createAdminClient, UserActivityLog } from './supabase';
 
 export interface ActivityLogData {
   username: string;
@@ -16,18 +16,7 @@ export interface ActivityLogData {
  */
 export async function logUserActivity(data: ActivityLogData): Promise<boolean> {
   try {
-    console.log('📝 Logging user activity:', {
-      username: data.username,
-      action: data.action_type,
-      resource: data.resource_type,
-      description: data.description
-    });
-
-    // Check if supabaseAdmin is properly configured
-    if (!supabaseAdmin) {
-      console.error('❌ Supabase admin client not configured');
-      return false;
-    }
+    const supabaseAdmin = createAdminClient();
 
     // Prepare the data with explicit null handling
     const insertData = {
@@ -41,28 +30,20 @@ export async function logUserActivity(data: ActivityLogData): Promise<boolean> {
       metadata: data.metadata || null
     };
 
-    console.log('📦 Insert data:', insertData);
-
     const { data: result, error } = await supabaseAdmin
       .from('user_activity_logs')
       .insert([insertData])
       .select();
 
     if (error) {
-      console.error('❌ Failed to log user activity:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
+      console.error('Failed to log user activity:', error);
       return false;
     }
 
-    console.log('✅ User activity logged successfully:', result);
+    void result;
     return true;
   } catch (error) {
-    console.error('💥 Error logging user activity:', error);
+    console.error('Error logging user activity:', error);
     return false;
   }
 }
@@ -80,6 +61,8 @@ export async function getUserActivityLogs(options?: {
   end_date?: string;
 }): Promise<{ data: UserActivityLog[]; count: number; error?: string }> {
   try {
+    const supabaseAdmin = createAdminClient();
+
     let query = supabaseAdmin
       .from('user_activity_logs')
       .select('*', { count: 'exact' })
@@ -118,13 +101,13 @@ export async function getUserActivityLogs(options?: {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('❌ Failed to fetch activity logs:', error);
+      console.error('Failed to fetch activity logs:', error);
       return { data: [], count: 0, error: error.message };
     }
 
     return { data: data || [], count: count || 0 };
   } catch (error) {
-    console.error('💥 Error fetching activity logs:', error);
+    console.error('Error fetching activity logs:', error);
     return { data: [], count: 0, error: (error as Error).message };
   }
 }
@@ -134,6 +117,8 @@ export async function getUserActivityLogs(options?: {
  */
 export async function getRecentLogins(limit: number = 10): Promise<UserActivityLog[]> {
   try {
+    const supabaseAdmin = createAdminClient();
+
     const { data, error } = await supabaseAdmin
       .from('user_activity_logs')
       .select('*')
@@ -142,13 +127,13 @@ export async function getRecentLogins(limit: number = 10): Promise<UserActivityL
       .limit(limit);
 
     if (error) {
-      console.error('❌ Failed to fetch recent logins:', error);
+      console.error('Failed to fetch recent logins:', error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('💥 Error fetching recent logins:', error);
+    console.error('Error fetching recent logins:', error);
     return [];
   }
 }
