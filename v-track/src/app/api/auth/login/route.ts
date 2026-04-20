@@ -7,12 +7,34 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const loginAttempts = new Map<string, { count: number; windowStart: number }>();
 
+function normalizeEnvValue(value: string): string {
+  const trimmed = value.trim();
+  const unquoted =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+      ? trimmed.slice(1, -1)
+      : trimmed;
+
+  return unquoted.replace(/\\\$/g, '$');
+}
+
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(`${name} is not configured`);
   }
-  return value;
+  return normalizeEnvValue(value);
+}
+
+function isPlaceholderHash(value: string): boolean {
+  return (
+    value === 'your_hashed_password_here' ||
+    value === 'SECURE_HASH_OF_YOUR_PASSWORD'
+  );
+}
+
+function isBcryptHash(value: string): boolean {
+  return /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(value);
 }
 
 function getLoginAttemptKey(request: NextRequest, username: string): string {
@@ -84,19 +106,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const adminUsername = getRequiredEnv('ADMIN_USERNAME');
-    const adminPasswordHash = getRequiredEnv('ADMIN_PASSWORD_HASH');
-    const jwtSecret = getRequiredEnv('JWT_SECRET');
-
-    if (jwtSecret.length < 32) {
-      throw new Error('JWT_SECRET must be at least 32 characters long');
+    let adminUsername = '';
+    let adminPasswordHash = '';
+    let jwtSecret = '';
+    try {
+      adminUsername = getRequiredEnv('ADMIN_USERNAME');
+      adminPasswordHash = getRequiredEnv('ADMIN_PASSWORD_HASH');
+      jwtSecret = getRequiredEnv('JWT_SECRET');
+    } catch (configError) {
+      console.error('Login configuration error:', configError);
+      return NextResponse.json(
+        { error: 'Authentication service is not configured' },
+        { status: 503 }
+      );
     }
 
-    if (
-      adminPasswordHash === 'your_hashed_password_here' ||
-      adminPasswordHash === 'SECURE_HASH_OF_YOUR_PASSWORD'
-    ) {
-      throw new Error('ADMIN_PASSWORD_HASH is using a placeholder value');
+    if (jwtSecret.length < 32 || isPlaceholderHash(adminPasswordHash) || !isBcryptHash(adminPasswordHash)) {
+      console.error('Login configuration error: invalid admin auth environment values');
+      return NextResponse.json(
+        { error: 'Authentication service is not configured' },
+        { status: 503 }
+      );
     }
 
     if (username !== adminUsername) {

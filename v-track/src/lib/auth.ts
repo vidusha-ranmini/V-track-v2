@@ -1,12 +1,34 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+function normalizeEnvValue(value: string): string {
+  const trimmed = value.trim();
+  const unquoted =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+      ? trimmed.slice(1, -1)
+      : trimmed;
+
+  return unquoted.replace(/\\\$/g, '$');
+}
+
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(`${name} is not configured`);
   }
-  return value;
+  return normalizeEnvValue(value);
+}
+
+function isPlaceholderHash(value: string): boolean {
+  return (
+    value === 'your_hashed_password_here' ||
+    value === 'SECURE_HASH_OF_YOUR_PASSWORD'
+  );
+}
+
+function isBcryptHash(value: string): boolean {
+  return /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(value);
 }
 
 function decodePayload(token: string): Record<string, unknown> | null {
@@ -37,10 +59,7 @@ export async function verifyPassword(password: string): Promise<boolean> {
   const adminPasswordHash = getRequiredEnv('ADMIN_PASSWORD_HASH');
   getRequiredEnv('ADMIN_USERNAME');
 
-  if (
-    adminPasswordHash === 'your_hashed_password_here' ||
-    adminPasswordHash === 'SECURE_HASH_OF_YOUR_PASSWORD'
-  ) {
+  if (isPlaceholderHash(adminPasswordHash) || !isBcryptHash(adminPasswordHash)) {
     throw new Error('ADMIN_PASSWORD_HASH must be set to a real bcrypt hash');
   }
 
