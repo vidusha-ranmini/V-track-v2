@@ -951,7 +951,7 @@ export function RoadDevelopment() {
                 onChange={(e) => setFormData({ ...formData, subRoadId: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">No Sub Road</option>
+                <option value="">Main Road (Default)</option>
                 {availableSubRoads.map((subRoad) => (
                   <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
                 ))}

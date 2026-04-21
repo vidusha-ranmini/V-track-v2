@@ -98,13 +98,9 @@ export default function AddDetails() {
         setSubRoads(data);
         setSelectedSubRoad('');
         setSelectedAddress('');
-        
-        // If no sub-roads exist, fetch addresses directly from main road
-        if (data.length === 0) {
-          fetchMainRoadAddresses(roadId);
-        } else {
-          setAddresses([]); // Clear addresses when road has sub-roads
-        }
+
+        // Default to main road addresses until a sub-road is selected.
+        fetchMainRoadAddresses(roadId);
       }
     } catch (error) {
       console.error('Error fetching sub-roads:', error);
@@ -332,12 +328,14 @@ export default function AddDetails() {
                   setSelectedSubRoad(e.target.value);
                   if (e.target.value && selectedRoad) {
                     fetchAddresses(selectedRoad, e.target.value);
+                  } else if (selectedRoad) {
+                    fetchMainRoadAddresses(selectedRoad);
                   }
                 }}
                 className="w-full p-2 border border-gray-300 rounded-md"
-                disabled={!selectedRoad || subRoads.length === 0}
+                disabled={!selectedRoad}
               >
-                <option value="">{subRoads.length === 0 ? 'No Sub Roads' : 'Select Sub Road'}</option>
+                <option value="">Main Road (Default)</option>
                 {subRoads.map((subRoad: {id: string, name: string}) => (
                   <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
                 ))}
@@ -352,7 +350,7 @@ export default function AddDetails() {
                 value={selectedAddress}
                 onChange={(e) => setSelectedAddress(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-md"
-                disabled={!selectedRoad || (subRoads.length > 0 && !selectedSubRoad)}
+                disabled={!selectedRoad}
               >
                 <option value="">Select Address</option>
                 {addresses.map((address: {id: string, address: string}) => (

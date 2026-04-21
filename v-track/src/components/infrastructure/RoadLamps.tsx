@@ -764,9 +764,7 @@ export default function RoadLamps() {
                 <option value="">
                   {isLoadingSubRoads 
                     ? 'Loading sub-roads...' 
-                    : subRoads.length === 0 
-                      ? 'No Sub Roads Available' 
-                      : 'Select Sub Road'
+                    : 'Main Road (Default)'
                   }
                 </option>
                 {subRoads.map(subRoad => {
