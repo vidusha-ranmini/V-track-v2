@@ -28,17 +28,45 @@ interface Member {
   wadihitiDimana: boolean;
 }
 
+interface RoadOption {
+  id: string;
+  name: string;
+}
+
+interface SubRoadOption {
+  id: string;
+  name: string;
+  road_id: string;
+}
+
+interface SubSubRoadOption {
+  id: string;
+  name: string;
+  road_id: string;
+  parent_sub_road_id: string;
+}
+
+interface AddressOption {
+  id: string;
+  address: string;
+  road_id: string;
+  sub_road_id: string | null;
+  sub_sub_road_id: string | null;
+}
+
 export default function AddDetails() {
   const { showSuccess, showError } = useToast();
   const [step, setStep] = useState(1);
   const [homeType, setHomeType] = useState('');
   const [selectedRoad, setSelectedRoad] = useState('');
   const [selectedSubRoad, setSelectedSubRoad] = useState('');
+  const [selectedSubSubRoad, setSelectedSubSubRoad] = useState('');
   const [selectedAddress, setSelectedAddress] = useState('');
 
-  const [roads, setRoads] = useState([]);
-  const [subRoads, setSubRoads] = useState([]);
-  const [addresses, setAddresses] = useState([]);
+  const [roads, setRoads] = useState<RoadOption[]>([]);
+  const [subRoads, setSubRoads] = useState<SubRoadOption[]>([]);
+  const [subSubRoads, setSubSubRoads] = useState<SubSubRoadOption[]>([]);
+  const [addresses, setAddresses] = useState<AddressOption[]>([]);
 
   // Home details
   const [homeDetails, setHomeDetails] = useState({
@@ -74,6 +102,24 @@ export default function AddDetails() {
     wadihitiDimana: false,
   });
 
+  const fetchSubRoads = async (roadId: string) => {
+    try {
+      const response = await fetch(`/api/roads/${roadId}/sub-roads`);
+      if (response.ok) {
+        const data = await response.json();
+        setSubRoads(data);
+        setSelectedSubRoad('');
+        setSelectedSubSubRoad('');
+        setSelectedAddress('');
+
+        // Default to main road addresses until a sub-road is selected.
+        fetchMainRoadAddresses(roadId);
+      }
+    } catch (error) {
+      console.error('Error fetching sub-roads:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchRoads = async () => {
       try {
@@ -88,22 +134,18 @@ export default function AddDetails() {
     };
 
     fetchRoads();
+    fetchSubSubRoads();
   }, []);
 
-  const fetchSubRoads = async (roadId: string) => {
+  const fetchSubSubRoads = async () => {
     try {
-      const response = await fetch(`/api/roads/${roadId}/sub-roads`);
+      const response = await fetch('/api/sub-sub-roads');
       if (response.ok) {
         const data = await response.json();
-        setSubRoads(data);
-        setSelectedSubRoad('');
-        setSelectedAddress('');
-
-        // Default to main road addresses until a sub-road is selected.
-        fetchMainRoadAddresses(roadId);
+        setSubSubRoads(data);
       }
     } catch (error) {
-      console.error('Error fetching sub-roads:', error);
+      console.error('Error fetching sub-sub-roads:', error);
     }
   };
 
@@ -120,9 +162,14 @@ export default function AddDetails() {
     }
   };
 
-  const fetchAddresses = async (roadId: string, subRoadId: string) => {
+  const fetchAddresses = async (roadId: string, subRoadId: string, subSubRoadId?: string) => {
     try {
-      const response = await fetch(`/api/roads/${roadId}/sub-roads/${subRoadId}/addresses`);
+      const searchParams = new URLSearchParams({ road_id: roadId, sub_road_id: subRoadId });
+      if (subSubRoadId) {
+        searchParams.set('sub_sub_road_id', subSubRoadId);
+      }
+
+      const response = await fetch(`/api/roads/${roadId}/sub-roads/${subRoadId}/addresses?${searchParams.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setAddresses(data);
@@ -131,6 +178,14 @@ export default function AddDetails() {
     } catch (error) {
       console.error('Error fetching addresses:', error);
     }
+  };
+
+  const getFilteredSubSubRoads = () => {
+    return subSubRoads.filter(subSubRoad => {
+      return selectedRoad && selectedSubRoad &&
+        subSubRoad.road_id === selectedRoad &&
+        subSubRoad.parent_sub_road_id === selectedSubRoad;
+    });
   };
 
   const calculateAgeFromNIC = (nic: string) => {
@@ -231,6 +286,7 @@ export default function AddDetails() {
         setHomeType('');
         setSelectedRoad('');
         setSelectedSubRoad('');
+        setSelectedSubSubRoad('');
         setSelectedAddress('');
         setHomeDetails({
           assessmentNumber: '',
@@ -326,6 +382,7 @@ export default function AddDetails() {
                 value={selectedSubRoad}
                 onChange={(e) => {
                   setSelectedSubRoad(e.target.value);
+                  setSelectedSubSubRoad('');
                   if (e.target.value && selectedRoad) {
                     fetchAddresses(selectedRoad, e.target.value);
                   } else if (selectedRoad) {
@@ -336,8 +393,31 @@ export default function AddDetails() {
                 disabled={!selectedRoad}
               >
                 <option value="">Main Road (Default)</option>
-                {subRoads.map((subRoad: {id: string, name: string}) => (
+                {subRoads.map((subRoad: SubRoadOption) => (
                   <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sub Sub Road <span className="text-gray-400 text-xs">(Optional)</span>
+              </label>
+              <select
+                value={selectedSubSubRoad}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedSubSubRoad(value);
+                  if (selectedRoad && selectedSubRoad) {
+                    fetchAddresses(selectedRoad, selectedSubRoad, value || undefined);
+                  }
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                disabled={!selectedRoad || !selectedSubRoad}
+              >
+                <option value="">Select Sub Sub Road</option>
+                {getFilteredSubSubRoads().map((subSubRoad) => (
+                  <option key={subSubRoad.id} value={subSubRoad.id}>{subSubRoad.name}</option>
                 ))}
               </select>
             </div>
@@ -353,7 +433,7 @@ export default function AddDetails() {
                 disabled={!selectedRoad}
               >
                 <option value="">Select Address</option>
-                {addresses.map((address: {id: string, address: string}) => (
+                {addresses.map((address: AddressOption) => (
                   <option key={address.id} value={address.id}>{address.address}</option>
                 ))}
               </select>
@@ -433,6 +513,13 @@ export default function AddDetails() {
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <h2 className="text-xl font-semibold mb-4">Step 2: Add Member Details</h2>
+
+            {(selectedRoad || selectedSubRoad || selectedSubSubRoad || selectedAddress) && (
+              <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-900">
+                <div className="font-medium mb-1">Selected Location</div>
+                <div>{[selectedRoad, selectedSubRoad, selectedSubSubRoad, selectedAddress].filter(Boolean).join(' > ')}</div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

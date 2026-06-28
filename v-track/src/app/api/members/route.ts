@@ -29,8 +29,10 @@ export async function GET(_request: NextRequest) {
           address: '123 Main Road',
           road_name: 'Main Road',
           sub_road_name: 'Sub Road A',
+          sub_sub_road_name: 'Lane 1',
           road_id: '1',
           sub_road_id: '1',
+          sub_sub_road_id: '1',
           // Household data
           resident_type: 'permanent',
           assessment_number: 'A001',
@@ -56,8 +58,10 @@ export async function GET(_request: NextRequest) {
           address: '456 Temple Road',
           road_name: 'Temple Road',
           sub_road_name: 'Temple Path',
+          sub_sub_road_name: 'Inner Lane',
           road_id: '2',
           sub_road_id: '3',
+          sub_sub_road_id: '2',
           // Household data
           resident_type: 'permanent',
           assessment_number: 'A002',
@@ -83,8 +87,10 @@ export async function GET(_request: NextRequest) {
           address: '123 Main Road',
           road_name: 'Main Road',
           sub_road_name: 'Sub Road B',
+          sub_sub_road_name: 'Lane 2',
           road_id: '1',
           sub_road_id: '2',
+          sub_sub_road_id: '3',
           // Household data
           resident_type: 'permanent',
           assessment_number: 'A001',
@@ -105,7 +111,8 @@ export async function GET(_request: NextRequest) {
           addresses!households_address_id_fkey(
             *,
             roads!addresses_road_id_fkey(name),
-            sub_roads!addresses_sub_road_id_fkey(name)
+            sub_roads!addresses_sub_road_id_fkey(name),
+            sub_sub_roads!addresses_sub_sub_road_id_fkey(name)
           )
         )
       `)
@@ -123,6 +130,7 @@ export async function GET(_request: NextRequest) {
       const address = household?.addresses;
       const road = address?.roads;
       const subRoad = address?.sub_roads;
+      const subSubRoad = address?.sub_sub_roads;
       
       return {
         ...member,
@@ -130,8 +138,10 @@ export async function GET(_request: NextRequest) {
         address: address?.address || '',
         road_name: road?.name || '',
         sub_road_name: subRoad?.name || '',
+        sub_sub_road_name: subSubRoad?.name || '',
         road_id: address?.road_id || '',
         sub_road_id: address?.sub_road_id || '',
+        sub_sub_road_id: address?.sub_sub_road_id || '',
         // Household information
         resident_type: household?.resident_type || '',
         assessment_number: household?.assessment_number || '',
@@ -139,7 +149,7 @@ export async function GET(_request: NextRequest) {
         household_created_at: household?.created_at || '',
         household_updated_at: household?.updated_at || '',
         // Legacy location field for backward compatibility
-        location: `${road?.name || ''} > ${subRoad?.name || ''} > ${address?.address || ''}`.replace(/^>\s*|\s*>$/g, '').replace(/\s*>\s*>/g, ' > '),
+        location: `${road?.name || ''} > ${subRoad?.name || ''} > ${subSubRoad?.name || ''} > ${address?.address || ''}`.replace(/^>\s*|\s*>$/g, '').replace(/\s*>\s*>/g, ' > '),
         // Transform offers array to string for legacy compatibility
         offers: Array.isArray(member.offers_receiving) ? member.offers_receiving.join(', ') : member.offers_receiving || ''
       };
@@ -168,8 +178,10 @@ export async function GET(_request: NextRequest) {
         address: '123 Main Road',
         road_name: 'Main Road',
         sub_road_name: 'Sub Road A',
+        sub_sub_road_name: 'Lane 1',
         road_id: '1',
         sub_road_id: '1',
+        sub_sub_road_id: '1',
         resident_type: 'permanent',
         assessment_number: 'A001',
         waste_disposal: 'local_council',
@@ -193,8 +205,10 @@ export async function GET(_request: NextRequest) {
         address: '456 Temple Road',
         road_name: 'Temple Road',
         sub_road_name: 'Temple Path',
+        sub_sub_road_name: 'Inner Lane',
         road_id: '2',
         sub_road_id: '3',
+        sub_sub_road_id: '2',
         resident_type: 'permanent',
         assessment_number: 'A002',
         waste_disposal: 'home',
@@ -218,8 +232,10 @@ export async function GET(_request: NextRequest) {
         address: '123 Main Road',
         road_name: 'Main Road',
         sub_road_name: 'Sub Road B',
+        sub_sub_road_name: 'Lane 2',
         road_id: '1',
         sub_road_id: '2',
+        sub_sub_road_id: '3',
         resident_type: 'permanent',
         assessment_number: 'A001',
         waste_disposal: 'local_council',

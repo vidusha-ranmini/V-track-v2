@@ -360,6 +360,7 @@ export default function RoadDetails() {
     setShowAddForm(false);
     setSelectedRoad('');
     setSelectedSubRoad('');
+    setSelectedSubSubRoad('');
   };
 
   const handleEdit = (item: EditableItem, type: ActiveTab) => {
@@ -381,6 +382,7 @@ export default function RoadDetails() {
     }
     if (type === 'sub-sub-roads' || type === 'addresses') {
       setSelectedSubRoad(item.parent_sub_road_id || item.sub_road_id || '');
+      setSelectedSubSubRoad(item.sub_sub_road_id || '');
     }
   };
 
@@ -392,6 +394,9 @@ export default function RoadDetails() {
 
   const getAddressesForSubRoad = (roadId: string, subRoadId: string) => 
     addresses.filter(a => a.road_id === roadId && a.sub_road_id === subRoadId && !a.is_deleted);
+
+  const getSubSubRoadsForAddress = (roadId: string, subRoadId: string) => 
+    subSubRoads.filter(ssr => ssr.road_id === roadId && ssr.parent_sub_road_id === subRoadId && !ssr.is_deleted);
 
   // Filter functions
   const getFilteredRoads = () => {
@@ -616,6 +621,7 @@ export default function RoadDetails() {
                         onChange={(e) => {
                           setSelectedRoad(e.target.value);
                           setSelectedSubRoad('');
+                          setSelectedSubSubRoad('');
                         }}
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       >
@@ -636,13 +642,35 @@ export default function RoadDetails() {
                       <select
                         required={activeTab === 'sub-sub-roads'}
                         value={selectedSubRoad}
-                        onChange={(e) => setSelectedSubRoad(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedSubRoad(e.target.value);
+                          setSelectedSubSubRoad('');
+                        }}
                         disabled={!selectedRoad}
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                       >
                         <option value="">{activeTab === 'addresses' ? 'Main Road (Default)' : 'Select Sub Road'}</option>
                         {subRoads.filter(sr => sr.road_id === selectedRoad && !sr.is_deleted).map(subRoad => (
                           <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {activeTab === 'addresses' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Sub Sub Road <span className="text-gray-500 text-xs">(Optional)</span>
+                      </label>
+                      <select
+                        value={selectedSubSubRoad}
+                        onChange={(e) => setSelectedSubSubRoad(e.target.value)}
+                        disabled={!selectedRoad || !selectedSubRoad}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                      >
+                        <option value="">Select Sub-Sub-Road</option>
+                        {selectedRoad && selectedSubRoad && getSubSubRoadsForAddress(selectedRoad, selectedSubRoad).map(subSubRoad => (
+                          <option key={subSubRoad.id} value={subSubRoad.id}>{subSubRoad.name}</option>
                         ))}
                       </select>
                     </div>
@@ -986,6 +1014,9 @@ export default function RoadDetails() {
                           Sub-road
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Sub-sub-road
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Member
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -997,6 +1028,7 @@ export default function RoadDetails() {
                       {getFilteredAddresses().map((address) => {
                         const parentRoad = roads.find(r => r.id === address.road_id);
                         const parentSubRoad = subRoads.find(sr => sr.id === address.sub_road_id);
+                        const parentSubSubRoad = subSubRoads.find(ssr => ssr.id === address.sub_sub_road_id);
                         return (
                           <tr key={address.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -1010,6 +1042,9 @@ export default function RoadDetails() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {parentSubRoad?.name || 'Main Road'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {parentSubSubRoad?.name || '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {address.member || '-'}

@@ -35,8 +35,10 @@ interface Member {
   address?: string;
   road_name?: string;
   sub_road_name?: string;
+  sub_sub_road_name?: string;
   road_id?: string;
   sub_road_id?: string;
+  sub_sub_road_id?: string;
   // Household data
   resident_type?: string;
   assessment_number?: string;
@@ -84,7 +86,49 @@ export default function ViewDetails() {
   }, []);
 
   useEffect(() => {
-    filterMembers();
+    let filtered = members.filter(member => !member.is_deleted);
+
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(member =>
+        member.full_name.toLowerCase().includes(search) ||
+        member.nic.toLowerCase().includes(search) ||
+        member.whatsapp_number?.toLowerCase().includes(search) ||
+        member.occupation.toLowerCase().includes(search) ||
+        member.address?.toLowerCase().includes(search) ||
+        member.road_name?.toLowerCase().includes(search) ||
+        member.sub_road_name?.toLowerCase().includes(search) ||
+        member.sub_sub_road_name?.toLowerCase().includes(search)
+      );
+    }
+
+    if (filters.residentType) {
+      filtered = filtered.filter(member => member.resident_type === filters.residentType);
+    }
+
+    if (filters.occupation) {
+      filtered = filtered.filter(member => member.occupation === filters.occupation);
+    }
+
+    if (filters.beneficiary) {
+      filtered = filtered.filter(member => {
+        const memberData = member as Member & { mahapola?: boolean; aswasuma?: boolean; wadihiti_dimana?: boolean };
+        if (filters.beneficiary === 'mahapola') return memberData.mahapola;
+        if (filters.beneficiary === 'aswasuma') return memberData.aswasuma;
+        if (filters.beneficiary === 'wadihiti_dimana') return memberData.wadihiti_dimana;
+        return false;
+      });
+    }
+
+    if (filters.road) {
+      filtered = filtered.filter(member => member.road_id === filters.road);
+    }
+
+    if (filters.subRoad) {
+      filtered = filtered.filter(member => member.sub_road_id === filters.subRoad);
+    }
+
+    setFilteredMembers(filtered);
   }, [members, searchTerm, filters]);
 
   const fetchMembers = async () => {
@@ -157,7 +201,8 @@ export default function ViewDetails() {
         member.occupation.toLowerCase().includes(search) ||
         member.address?.toLowerCase().includes(search) ||
         member.road_name?.toLowerCase().includes(search) ||
-        member.sub_road_name?.toLowerCase().includes(search)
+        member.sub_road_name?.toLowerCase().includes(search) ||
+        member.sub_sub_road_name?.toLowerCase().includes(search)
       );
     }
 
@@ -298,15 +343,6 @@ export default function ViewDetails() {
   const closeEditHouseholdModal = () => {
     setEditingHousehold(null);
     setShowEditHouseholdModal(false);
-  };
-
-  const handleHouseholdChange = (field: string, value: string) => {
-    if (editingHousehold) {
-      setEditingHousehold({
-        ...editingHousehold,
-        [field]: value
-      });
-    }
   };
 
   const handleSaveHousehold = async () => {
@@ -460,7 +496,7 @@ export default function ViewDetails() {
     const csv = [
       ['Location', 'Resident Type', 'Member Name', 'Occupation', 'Offers', 'NIC', 'WhatsApp', 'Workplace Address', 'Workplace Location'],
       ...filteredMembers.map(member => [
-        `${member.road_name || ''} - ${member.sub_road_name || ''} - ${member.address || ''}`,
+        `${member.road_name || ''} - ${member.sub_road_name || ''} - ${member.sub_sub_road_name || ''} - ${member.address || ''}`,
         member.resident_type || '',
         member.full_name,
         member.occupation,
@@ -678,9 +714,9 @@ export default function ViewDetails() {
                     <div>
                       <div className="font-medium">{member.address || 'N/A'}</div>
                       <div className="text-gray-500 text-xs">
-                        {member.road_name && member.sub_road_name 
-                          ? `${member.road_name} > ${member.sub_road_name}`
-                          : member.road_name || 'No road info'
+                        {member.road_name
+                          ? [member.road_name, member.sub_road_name, member.sub_sub_road_name].filter(Boolean).join(' > ')
+                          : 'No road info'
                         }
                       </div>
                     </div>
@@ -965,14 +1001,13 @@ export default function ViewDetails() {
                       <p className="text-sm text-gray-900">{selectedMember.sub_road_name || 'Main Road'}</p>
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700">Sub Sub Road</label>
+                      <p className="text-sm text-gray-900">{selectedMember.sub_sub_road_name || '-'}</p>
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700">Full Location</label>
                       <p className="text-sm text-blue-600">
-                        {selectedMember.road_name && selectedMember.sub_road_name 
-                          ? `${selectedMember.road_name} → ${selectedMember.sub_road_name} → ${selectedMember.address || 'No specific address'}`
-                          : selectedMember.road_name 
-                            ? `${selectedMember.road_name} → ${selectedMember.address || 'No specific address'}`
-                            : selectedMember.address || 'No location information'
-                        }
+                        {[selectedMember.road_name, selectedMember.sub_road_name, selectedMember.sub_sub_road_name, selectedMember.address || 'No specific address'].filter(Boolean).join(' → ') || 'No location information'}
                       </p>
                     </div>
                   </div>
