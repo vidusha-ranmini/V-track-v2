@@ -35,10 +35,23 @@ interface Address {
   address: string;
   road_id: string;
   sub_road_id: string;
+  sub_sub_road_id?: string | null;
   member?: string;
   created_at: string;
   is_deleted: boolean;
 }
+
+type EditableItem = {
+  id: string;
+  address?: string;
+  member?: string;
+  name?: string;
+  parent_sub_road_id?: string | null;
+  sub_road_id?: string | null;
+  sub_sub_road_id?: string | null;
+  road_id?: string | null;
+  development_status?: 'developed' | 'undeveloped' | string;
+};
 
 type ActiveTab = 'roads' | 'sub-roads' | 'sub-sub-roads' | 'addresses';
 
@@ -56,14 +69,14 @@ export default function RoadDetails() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRoad, setFilterRoad] = useState('');
   const [filterSubRoad, setFilterSubRoad] = useState('');
-  const [expandedRoads, setExpandedRoads] = useState<Set<string>>(new Set());
-  const [expandedSubRoads, setExpandedSubRoads] = useState<Set<string>>(new Set());
+  const [filterSubSubRoad, setFilterSubSubRoad] = useState('');
   
   // Form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [selectedRoad, setSelectedRoad] = useState('');
   const [selectedSubRoad, setSelectedSubRoad] = useState('');
+    const [selectedSubSubRoad, setSelectedSubSubRoad] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -77,6 +90,7 @@ export default function RoadDetails() {
       await fetchAllData();
     };
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reset filters when switching tabs
@@ -84,7 +98,23 @@ export default function RoadDetails() {
     setSearchTerm('');
     setFilterRoad('');
     setFilterSubRoad('');
+    setFilterSubSubRoad('');
   }, [activeTab]);
+      const existingAddress = addresses.find(address =>
+        address.address.toLowerCase() === formData.address.toLowerCase() &&
+        address.road_id === selectedRoad &&
+        (selectedSubRoad ? address.sub_road_id === selectedSubRoad : !address.sub_road_id) &&
+        (selectedSubSubRoad ? address.sub_sub_road_id === selectedSubSubRoad : !address.sub_sub_road_id) &&
+        !address.is_deleted
+      );
+
+      if (existingAddress) {
+        showError(
+          'Duplicate Address',
+          `An address named "${formData.address}" already exists for this location. Please choose a different address.`
+        );
+        return false;
+      }
 
   const fetchAllData = async () => {
     setIsLoading(true);
@@ -227,7 +257,8 @@ export default function RoadDetails() {
             address: formData.address,
             member: formData.member,
             road_id: selectedRoad,
-            sub_road_id: selectedSubRoad
+            sub_road_id: selectedSubRoad,
+            sub_sub_road_id: selectedSubSubRoad || undefined
           };
           break;
       }
@@ -331,8 +362,9 @@ export default function RoadDetails() {
     setSelectedSubRoad('');
   };
 
-  const handleEdit = (item: { address?: string; member?: string; name?: string; parent_sub_road_id?: string; sub_road_id?: string; road_id?: string; development_status?: string; id: string }, type: ActiveTab) => {
+  const handleEdit = (item: EditableItem, type: ActiveTab) => {
     if (type === 'addresses') {
+      setSelectedSubSubRoad(item.sub_sub_road_id || '');
       setFormData({ ...formData, address: item.address || '', member: item.member || '', name: '' });
     } else {
       setFormData({ 
@@ -400,8 +432,9 @@ export default function RoadDetails() {
                            (address.member && address.member.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesRoadFilter = !filterRoad || address.road_id === filterRoad;
       const matchesSubRoadFilter = !filterSubRoad || address.sub_road_id === filterSubRoad;
-      
-      return matchesSearch && matchesRoadFilter && matchesSubRoadFilter;
+      const matchesSubSubRoadFilter = !filterSubSubRoad || address.sub_sub_road_id === filterSubSubRoad;
+
+      return matchesSearch && matchesRoadFilter && matchesSubRoadFilter && matchesSubSubRoadFilter;
     });
   };
 
@@ -499,7 +532,10 @@ export default function RoadDetails() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Sub-Road</label>
                   <select
                     value={filterSubRoad}
-                    onChange={(e) => setFilterSubRoad(e.target.value)}
+                    onChange={(e) => {
+                      setFilterSubRoad(e.target.value);
+                      setFilterSubSubRoad('');
+                    }}
                     disabled={!filterRoad}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                   >
@@ -507,6 +543,25 @@ export default function RoadDetails() {
                     {subRoads.filter(sr => sr.road_id === filterRoad && !sr.is_deleted).map(subRoad => (
                       <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
                     ))}
+                  </select>
+                </div>
+              )}
+
+              {activeTab === 'addresses' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Sub-Sub-Road</label>
+                  <select
+                    value={filterSubSubRoad}
+                    onChange={(e) => setFilterSubSubRoad(e.target.value)}
+                    disabled={!filterSubRoad}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                  >
+                    <option value="">All Sub-Sub-Roads</option>
+                    {subSubRoads
+                      .filter(ssr => ssr.road_id === filterRoad && ssr.parent_sub_road_id === filterSubRoad && !ssr.is_deleted)
+                      .map(subSubRoad => (
+                        <option key={subSubRoad.id} value={subSubRoad.id}>{subSubRoad.name}</option>
+                      ))}
                   </select>
                 </div>
               )}
@@ -984,7 +1039,7 @@ export default function RoadDetails() {
                     <div className="text-center py-12">
                       <Home className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                       <p className="text-gray-500 text-lg">
-                        {searchTerm || filterRoad || filterSubRoad ? 'No addresses match your filters' : 'No addresses found'}
+                        {searchTerm || filterRoad || filterSubRoad || filterSubSubRoad ? 'No addresses match your filters' : 'No addresses found'}
                       </p>
                       <p className="text-gray-400">
                         {searchTerm || filterRoad || filterSubRoad ? 'Try adjusting your search terms or filters' : 'Add the first address to get started'}

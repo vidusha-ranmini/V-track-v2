@@ -9,8 +9,9 @@ interface RoadLamp {
   lamp_number: string;
   road_id: string;
   sub_road_id: string;
+  sub_sub_road_id: string;
   address_id: string;
-  status: 'working' | 'broken';
+  status: 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken';
   arm_broken?: boolean;
   created_at: string;
   updated_at: string;
@@ -18,6 +19,7 @@ interface RoadLamp {
   // Location data from joins
   road_name?: string;
   sub_road_name?: string;
+  sub_sub_road_name?: string;
   address?: string;
 }
 
@@ -31,6 +33,14 @@ interface SubRoad {
   id: string;
   name: string;
   road_id: string;
+  is_deleted?: boolean;
+}
+
+interface SubSubRoad {
+  id: string;
+  name: string;
+  road_id: string;
+  parent_sub_road_id: string;
   is_deleted?: boolean;
 }
 
@@ -48,6 +58,7 @@ export default function RoadLamps() {
   const [filteredLamps, setFilteredLamps] = useState<RoadLamp[]>([]);
   const [roads, setRoads] = useState<Road[]>([]);
   const [subRoads, setSubRoads] = useState<SubRoad[]>([]);
+  const [subSubRoads, setSubSubRoads] = useState<SubSubRoad[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingSubRoads, setIsLoadingSubRoads] = useState(false);
@@ -55,34 +66,46 @@ export default function RoadLamps() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLamp, setEditingLamp] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'working' | 'broken'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken'>('all');
   const [roadFilter, setRoadFilter] = useState('');
+  const [subRoadFilter, setSubRoadFilter] = useState('');
+  const [subSubRoadFilter, setSubSubRoadFilter] = useState('');
   
   const [lampData, setLampData] = useState({
     lamp_number: '',
     road_id: '',
     sub_road_id: '',
+    sub_sub_road_id: '',
     address_id: '',
-    status: 'working' as 'working' | 'broken',
+    status: 'working' as 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken',
     arm_broken: false
   });
 
   useEffect(() => {
     fetchLamps();
     fetchRoads();
+    fetchSubSubRoads();
   }, []);
 
   useEffect(() => {
     filterLamps();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lamps, searchTerm, statusFilter, roadFilter]);
+  }, [lamps, searchTerm, statusFilter, roadFilter, subRoadFilter, subSubRoadFilter]);
 
   const fetchLamps = async () => {
     try {
       const response = await fetch('/api/road-lamps');
       if (response.ok) {
         const data = await response.json();
-        setLamps(data);
+        // Normalize legacy 'broken' statuses to 'broken_bulb' for display
+        const normalized = data.map((lamp: unknown) => {
+          const l = lamp as RoadLamp;
+          return {
+            ...l,
+            status: l.status === 'broken' ? 'broken_bulb' : l.status
+          } as RoadLamp;
+        });
+        setLamps(normalized);
       }
     } catch (error) {
       console.error('Error fetching road lamps:', error);
@@ -103,23 +126,25 @@ export default function RoadLamps() {
     }
   };
 
-  const fetchSubRoads = async (roadId: string) => {
+  const fetchSubSubRoads = async () => {
     try {
-      const response = await fetch(`/api/roads/${roadId}/sub-roads`);
+      const response = await fetch('/api/sub-sub-roads');
       if (response.ok) {
         const data = await response.json();
-        setSubRoads(data);
-        setAddresses([]);
-        setLampData(prev => ({ ...prev, sub_road_id: '', address_id: '' }));
+        setSubSubRoads(data);
       }
     } catch (error) {
-      console.error('Error fetching sub-roads:', error);
+      console.error('Error fetching sub-sub-roads:', error);
     }
   };
 
-  const fetchAddresses = async (roadId: string, subRoadId: string) => {
+  const fetchAddresses = async (roadId: string, subRoadId: string, subSubRoadId: string) => {
     try {
-      const response = await fetch(`/api/roads/${roadId}/sub-roads/${subRoadId}/addresses`);
+      const searchParams = new URLSearchParams({ road_id: roadId, sub_road_id: subRoadId });
+      if (subSubRoadId) {
+        searchParams.set('sub_sub_road_id', subSubRoadId);
+      }
+      const response = await fetch(`/api/addresses?${searchParams.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setAddresses(data);
@@ -155,16 +180,30 @@ export default function RoadLamps() {
         lamp.lamp_number.toLowerCase().includes(search) ||
         lamp.road_name?.toLowerCase().includes(search) ||
         lamp.sub_road_name?.toLowerCase().includes(search) ||
+        lamp.sub_sub_road_name?.toLowerCase().includes(search) ||
         lamp.address?.toLowerCase().includes(search)
       );
     }
 
     if (statusFilter && statusFilter !== 'all') {
-      filtered = filtered.filter(lamp => lamp.status === statusFilter);
+      if (statusFilter === 'broken') {
+        // 'broken' filter matches any non-working status
+        filtered = filtered.filter(lamp => lamp.status !== 'working');
+      } else {
+        filtered = filtered.filter(lamp => lamp.status === statusFilter);
+      }
     }
 
     if (roadFilter) {
       filtered = filtered.filter(lamp => lamp.road_id === roadFilter);
+    }
+
+    if (subRoadFilter) {
+      filtered = filtered.filter(lamp => lamp.sub_road_id === subRoadFilter);
+    }
+
+    if (subSubRoadFilter) {
+      filtered = filtered.filter(lamp => lamp.sub_sub_road_id === subSubRoadFilter);
     }
 
     setFilteredLamps(filtered);
@@ -172,7 +211,7 @@ export default function RoadLamps() {
 
   const handleRoadChange = async (roadId: string) => {
     console.log('Road changed to:', roadId);
-    setLampData(prev => ({ ...prev, road_id: roadId, sub_road_id: '', address_id: '' }));
+    setLampData(prev => ({ ...prev, road_id: roadId, sub_road_id: '', sub_sub_road_id: '', address_id: '' }));
     
     if (roadId) {
       try {
@@ -222,7 +261,7 @@ export default function RoadLamps() {
   const handleSubRoadChange = async (subRoadId: string) => {
     // Update the form data immediately and get the current road_id
     const currentRoadId = lampData.road_id;
-    setLampData(prev => ({ ...prev, sub_road_id: subRoadId, address_id: '' }));
+    setLampData(prev => ({ ...prev, sub_road_id: subRoadId, sub_sub_road_id: '', address_id: '' }));
     
     console.log('Sub-road changed to:', subRoadId, 'for road:', currentRoadId);
     
@@ -234,23 +273,7 @@ export default function RoadLamps() {
         
         console.log('Fetching addresses for road:', currentRoadId, 'sub-road:', subRoadId);
         
-        // Fetch addresses for selected sub-road
-        const response = await fetch(`/api/roads/${currentRoadId}/sub-roads/${subRoadId}/addresses`);
-        console.log('Addresses API response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Addresses data received:', data);
-          
-          // Filter out deleted addresses on client side as additional safety
-          const activeAddresses = data.filter((addr: Address) => !addr.is_deleted);
-          setAddresses(activeAddresses);
-          console.log('Active addresses set:', activeAddresses);
-        } else {
-          const errorText = await response.text();
-          console.error('Failed to fetch addresses:', response.status, errorText);
-          setAddresses([]);
-        }
+        await fetchAddresses(currentRoadId, subRoadId, '');
       } catch (error) {
         console.error('Error fetching addresses:', error);
         setAddresses([]);
@@ -264,6 +287,29 @@ export default function RoadLamps() {
     } else {
       console.log('Clearing addresses - no sub-road or road selected');
       setAddresses([]);
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  const handleSubSubRoadChange = async (subSubRoadId: string) => {
+    const currentRoadId = lampData.road_id;
+    const currentSubRoadId = lampData.sub_road_id;
+    setLampData(prev => ({ ...prev, sub_sub_road_id: subSubRoadId, address_id: '' }));
+
+    if (subSubRoadId && currentRoadId && currentSubRoadId) {
+      try {
+        setAddresses([]);
+        setIsLoadingAddresses(true);
+        await fetchAddresses(currentRoadId, currentSubRoadId, subSubRoadId);
+      } catch (error) {
+        console.error('Error fetching sub-sub-road addresses:', error);
+        setAddresses([]);
+      } finally {
+        setIsLoadingAddresses(false);
+      }
+    } else if (currentRoadId && currentSubRoadId) {
+      setIsLoadingAddresses(true);
+      await fetchAddresses(currentRoadId, currentSubRoadId, '');
       setIsLoadingAddresses(false);
     }
   };
@@ -307,8 +353,8 @@ export default function RoadLamps() {
     }
   };
 
-  const toggleStatus = async (lampId: string, currentStatus: 'working' | 'broken') => {
-    const newStatus = currentStatus === 'working' ? 'broken' : 'working';
+  const toggleStatus = async (lampId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'working' ? 'broken_bulb' : 'working';
     
     try {
       const response = await fetch(`/api/road-lamps/${lampId}/status`, {
@@ -330,6 +376,7 @@ export default function RoadLamps() {
       lamp_number: '',
       road_id: '',
       sub_road_id: '',
+      sub_sub_road_id: '',
       address_id: '',
       status: 'working',
       arm_broken: false
@@ -351,8 +398,9 @@ export default function RoadLamps() {
       lamp_number: lamp.lamp_number,
       road_id: lamp.road_id,
       sub_road_id: lamp.sub_road_id,
+      sub_sub_road_id: lamp.sub_sub_road_id,
       address_id: lamp.address_id,
-      status: lamp.status,
+      status: lamp.status === 'broken' ? 'broken_bulb' : lamp.status,
       arm_broken: !!lamp.arm_broken
     });
     
@@ -375,7 +423,11 @@ export default function RoadLamps() {
           // Then load addresses for selected scope
           if (lamp.sub_road_id) {
             setIsLoadingAddresses(true);
-            const addressesResponse = await fetch(`/api/roads/${lamp.road_id}/sub-roads/${lamp.sub_road_id}/addresses`);
+            const searchParams = new URLSearchParams({ road_id: lamp.road_id, sub_road_id: lamp.sub_road_id });
+            if (lamp.sub_sub_road_id) {
+              searchParams.set('sub_sub_road_id', lamp.sub_sub_road_id);
+            }
+            const addressesResponse = await fetch(`/api/addresses?${searchParams.toString()}`);
             if (addressesResponse.ok) {
               const addressesData = await addressesResponse.json();
               setAddresses(addressesData);
@@ -492,13 +544,21 @@ export default function RoadLamps() {
             background-color: #d1fae5;
             color: #065f46;
           }
-          .status-broken {
+          .status-bulb {
             background-color: #fee2e2;
             color: #991b1b;
           }
-          .status-arm-broken {
-            background-color: #ffedd5;
+          .status-switch {
+            background-color: #eef2ff;
+            color: #3730a3;
+          }
+          .status-arm {
+            background-color: #fff7ed;
             color: #9a3412;
+          }
+          .status-bracket {
+            background-color: #fffbeb;
+            color: #7c2d12;
           }
           @media print {
             body { margin: 0; }
@@ -540,6 +600,7 @@ export default function RoadLamps() {
               <th>Status</th>
               <th>Road</th>
               <th>Sub Road</th>
+              <th>Sub Sub Road</th>
               <th>Address</th>
             </tr>
           </thead>
@@ -548,12 +609,23 @@ export default function RoadLamps() {
               <tr>
                 <td>${lamp.lamp_number}</td>
                 <td>
-                  <span class="status-badge ${lamp.status === 'working' ? 'status-working' : lamp.arm_broken ? 'status-arm-broken' : 'status-broken'}">
-                    ${lamp.status === 'working' ? 'Working' : lamp.arm_broken ? 'Arm Broken' : 'Broken'}
+                  <span class="status-badge ${
+                    lamp.status === 'working' ? 'status-working' :
+                    lamp.status === 'broken_bulb' ? 'status-bulb' :
+                    lamp.status === 'broken_switch' ? 'status-switch' :
+                    lamp.status === 'broken_arm' ? 'status-arm' : 'status-bracket'
+                  }">
+                    ${
+                      lamp.status === 'working' ? 'Working' :
+                      lamp.status === 'broken_bulb' ? 'Broken bulb' :
+                      lamp.status === 'broken_switch' ? 'Broken switch' :
+                      lamp.status === 'broken_arm' ? 'Broken arm' : 'Broken bracket'
+                    }
                   </span>
                 </td>
                 <td>${lamp.road_name || '-'}</td>
                 <td>${lamp.sub_road_name || '-'}</td>
+                <td>${lamp.sub_sub_road_name || '-'}</td>
                 <td>${lamp.address || '-'}</td>
               </tr>
             `).join('')}
@@ -575,7 +647,7 @@ export default function RoadLamps() {
   const stats = {
     total: filteredLamps.length,
     working: filteredLamps.filter(l => l.status === 'working').length,
-    broken: filteredLamps.filter(l => l.status === 'broken').length
+    broken: filteredLamps.filter(l => l.status !== 'working').length
   };
 
   if (isLoading) {
@@ -654,24 +726,64 @@ export default function RoadLamps() {
             {/* Status Filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'working' | 'broken')}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken')}
               className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">All Status</option>
               <option value="working">Working</option>
-              <option value="broken">Broken</option>
+              <option value="broken">Broken (all)</option>
+              <option value="broken_bulb">Broken bulb</option>
+              <option value="broken_switch">Broken switch</option>
+              <option value="broken_arm">Broken arm</option>
+              <option value="broken_bracket">Broken bracket</option>
             </select>
 
             {/* Road Filter */}
             <select
               value={roadFilter}
-              onChange={(e) => setRoadFilter(e.target.value)}
+              onChange={(e) => {
+                setRoadFilter(e.target.value);
+                setSubRoadFilter('');
+                setSubSubRoadFilter('');
+              }}
               className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">All Roads</option>
               {roads.map(road => (
                 <option key={road.id} value={road.id}>{road.name}</option>
               ))}
+            </select>
+
+            <select
+              value={subRoadFilter}
+              onChange={(e) => {
+                setSubRoadFilter(e.target.value);
+                setSubSubRoadFilter('');
+              }}
+              disabled={!roadFilter}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            >
+              <option value="">All Sub Roads</option>
+              {subRoads
+                .filter(subRoad => !roadFilter || subRoad.road_id === roadFilter)
+                .map(subRoad => (
+                  <option key={subRoad.id} value={subRoad.id}>{subRoad.name}</option>
+                ))}
+            </select>
+
+            <select
+              value={subSubRoadFilter}
+              onChange={(e) => setSubSubRoadFilter(e.target.value)}
+              disabled={!subRoadFilter}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            >
+              <option value="">All Sub Sub Roads</option>
+              {subSubRoads
+                .filter(subSubRoad => !roadFilter || subSubRoad.road_id === roadFilter)
+                .filter(subSubRoad => !subRoadFilter || subSubRoad.parent_sub_road_id === subRoadFilter)
+                .map(subSubRoad => (
+                  <option key={subSubRoad.id} value={subSubRoad.id}>{subSubRoad.name}</option>
+                ))}
             </select>
           </div>
 
@@ -715,17 +827,7 @@ export default function RoadLamps() {
                 placeholder="e.g., L001"
               />
 
-              {lampData.status === 'broken' && (
-                <label className="mt-3 flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={lampData.arm_broken}
-                    onChange={(e) => setLampData({ ...lampData, arm_broken: e.target.checked })}
-                    className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                  />
-                  Arm broken
-                </label>
-              )}
+              {/* Arm broken is now a specific status option (broken_arm) */}
             </div>
 
             {/* Road */}
@@ -781,6 +883,26 @@ export default function RoadLamps() {
               )}
             </div>
 
+            {/* Sub Sub Road */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sub Sub Road <span className="text-gray-400 text-xs">(Optional)</span></label>
+              <select
+                value={lampData.sub_sub_road_id}
+                onChange={(e) => handleSubSubRoadChange(e.target.value)}
+                disabled={!lampData.road_id || !lampData.sub_road_id || isLoadingSubRoads}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+              >
+                <option value="">Select Sub Sub Road</option>
+                {subSubRoads
+                  .filter(subSubRoad => subSubRoad.road_id === lampData.road_id)
+                  .filter(subSubRoad => subSubRoad.parent_sub_road_id === lampData.sub_road_id)
+                  .filter(subSubRoad => !subSubRoad.is_deleted)
+                  .map(subSubRoad => (
+                    <option key={subSubRoad.id} value={subSubRoad.id}>{subSubRoad.name}</option>
+                  ))}
+              </select>
+            </div>
+
             {/* Address */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -819,17 +941,20 @@ export default function RoadLamps() {
               <select
                 value={lampData.status}
                 onChange={(e) => {
-                  const status = e.target.value as 'working' | 'broken';
+                  const status = e.target.value as 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken';
                   setLampData({
                     ...lampData,
                     status,
-                    arm_broken: status === 'broken' ? lampData.arm_broken : false
+                    arm_broken: status === 'broken_arm'
                   });
                 }}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="working">Working</option>
-                <option value="broken">Broken</option>
+                <option value="broken_bulb">Broken bulb</option>
+                <option value="broken_switch">Broken switch</option>
+                <option value="broken_arm">Broken arm</option>
+                <option value="broken_bracket">Broken bracket</option>
               </select>
             </div>
 
@@ -870,6 +995,9 @@ export default function RoadLamps() {
                   Location
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Sub Sub Road
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Address
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -883,11 +1011,10 @@ export default function RoadLamps() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Lightbulb className={`w-5 h-5 mr-3 ${
-                        lamp.status === 'working'
-                          ? 'text-green-600'
-                          : lamp.arm_broken
-                            ? 'text-orange-600'
-                            : 'text-red-600'
+                        lamp.status === 'working' ? 'text-green-600' :
+                        lamp.status === 'broken_bulb' ? 'text-red-600' :
+                        lamp.status === 'broken_switch' ? 'text-indigo-600' :
+                        lamp.status === 'broken_arm' ? 'text-orange-600' : 'text-amber-700'
                       }`} />
                       <div>
                         <div className="text-sm font-medium text-gray-900">{lamp.lamp_number}</div>
@@ -896,14 +1023,16 @@ export default function RoadLamps() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center justify-between">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        lamp.status === 'working' 
-                          ? 'bg-green-100 text-green-800'
-                          : lamp.arm_broken
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-red-100 text-red-800'
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        lamp.status === 'working' ? 'bg-green-100 text-green-800' :
+                        lamp.status === 'broken_bulb' ? 'bg-red-100 text-red-800' :
+                        lamp.status === 'broken_switch' ? 'bg-indigo-100 text-indigo-800' :
+                        lamp.status === 'broken_arm' ? 'bg-orange-100 text-orange-800' : 'bg-amber-100 text-amber-800'
                       }`}>
-                        {lamp.status === 'broken' && lamp.arm_broken ? 'ARM BROKEN' : lamp.status.toUpperCase()}
+                        {lamp.status === 'working' ? 'WORKING' :
+                         lamp.status === 'broken_bulb' ? 'BROKEN BULB' :
+                         lamp.status === 'broken_switch' ? 'BROKEN SWITCH' :
+                         lamp.status === 'broken_arm' ? 'BROKEN ARM' : 'BROKEN BRACKET'}
                       </span>
                       <button
                         onClick={() => toggleStatus(lamp.id, lamp.status)}
@@ -935,7 +1064,15 @@ export default function RoadLamps() {
                           → {lamp.sub_road_name}
                         </div>
                       )}
+                      {lamp.sub_sub_road_name && (
+                        <div className="text-xs text-gray-500 ml-5">
+                          → {lamp.sub_sub_road_name}
+                        </div>
+                      )}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {lamp.sub_sub_road_name || '-'}
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-500">{lamp.address}</div>

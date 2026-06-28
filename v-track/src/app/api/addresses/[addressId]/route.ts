@@ -11,7 +11,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { address, road_id, sub_road_id, member } = body;
+    const { address, road_id, sub_road_id, sub_sub_road_id, member } = body;
     const { addressId } = await params;
 
     if (!address || !road_id) {
@@ -30,8 +30,14 @@ export async function PUT(
     // Handle sub_road_id filtering for duplicate check
     if (sub_road_id) {
       existingQuery = existingQuery.eq('sub_road_id', sub_road_id);
+      if (sub_sub_road_id) {
+        existingQuery = existingQuery.eq('sub_sub_road_id', sub_sub_road_id);
+      } else {
+        existingQuery = existingQuery.is('sub_sub_road_id', null);
+      }
     } else {
       existingQuery = existingQuery.is('sub_road_id', null);
+      existingQuery = existingQuery.is('sub_sub_road_id', null);
     }
 
     const { data: existing } = await existingQuery.maybeSingle();
@@ -46,6 +52,7 @@ export async function PUT(
         address,
         road_id,
         sub_road_id: sub_road_id || null,
+        sub_sub_road_id: sub_sub_road_id || null,
         member: member || null
       })
       .eq('id', addressId)

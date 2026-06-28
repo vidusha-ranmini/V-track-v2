@@ -36,6 +36,7 @@ export interface Address {
   address: string;
   road_id: string;
   sub_road_id: string;
+  sub_sub_road_id: string;
   created_at: string;
   is_deleted: boolean;
 }
@@ -92,8 +93,9 @@ export interface RoadLamp {
   lamp_number: string;
   road_id: string;
   sub_road_id: string;
+  sub_sub_road_id: string;
   address_id: string;
-  status: 'working' | 'broken';
+  status: 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken';
   arm_broken?: boolean;
   created_at: string;
   updated_at: string;

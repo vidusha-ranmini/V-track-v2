@@ -6,6 +6,8 @@ export async function GET(
   { params }: { params: Promise<{ roadId: string; subRoadId: string }> }
 ) {
   const { roadId, subRoadId } = await params;
+  const { searchParams } = new URL(request.url);
+  const subSubRoadId = searchParams.get('sub_sub_road_id');
   try {
     // Check if Supabase is configured
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,7 +15,7 @@ export async function GET(
     if (!supabaseUrl || supabaseUrl === 'your_supabase_url_here') {
       // Return mock data for testing
       const filteredAddresses = mockAddresses.filter(
-        addr => addr.road_id === roadId && addr.sub_road_id === subRoadId
+        addr => addr.road_id === roadId && addr.sub_road_id === subRoadId && (!subSubRoadId || addr.sub_sub_road_id === subSubRoadId)
       );
       return NextResponse.json(filteredAddresses);
     }
@@ -27,6 +29,7 @@ export async function GET(
       .select('*')
       .eq('road_id', roadId)
       .eq('sub_road_id', subRoadId)
+      .eq(subSubRoadId ? 'sub_sub_road_id' : 'sub_road_id', subSubRoadId || subRoadId)
       .eq('is_deleted', false)
       .order('address');
 
@@ -37,7 +40,7 @@ export async function GET(
     console.error('Error fetching addresses:', error);
     // Return mock data as fallback
     const filteredAddresses = mockAddresses.filter(
-      addr => addr.road_id === roadId && addr.sub_road_id === subRoadId
+      addr => addr.road_id === roadId && addr.sub_road_id === subRoadId && (!subSubRoadId || addr.sub_sub_road_id === subSubRoadId)
     );
     return NextResponse.json(filteredAddresses);
   }

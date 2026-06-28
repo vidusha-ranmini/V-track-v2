@@ -5,7 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const { data, error } = await supabase
       .from('road_lamps')
@@ -13,6 +13,7 @@ export async function GET(_request: NextRequest) {
         *,
         roads!road_lamps_road_id_fkey(name),
         sub_roads!road_lamps_sub_road_id_fkey(name),
+        sub_sub_roads!road_lamps_sub_sub_road_id_fkey(name),
         addresses!road_lamps_address_id_fkey(address)
       `)
       .eq('is_deleted', false)
@@ -28,6 +29,7 @@ export async function GET(_request: NextRequest) {
       ...lamp,
       road_name: lamp.roads?.name,
       sub_road_name: lamp.sub_roads?.name,
+      sub_sub_road_name: lamp.sub_sub_roads?.name,
       address: lamp.addresses?.address
     })) || [];
 
@@ -41,12 +43,15 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { lamp_number, road_id, sub_road_id, address_id, status, arm_broken } = body;
+    const { lamp_number, road_id, sub_road_id, sub_sub_road_id, address_id, status } = body;
 
     // Validate required fields (sub_road_id is optional for main road lamps)
     if (!lamp_number || !road_id || !address_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Normalize legacy 'broken' status to 'broken_bulb'
+    const normalizedStatus = status === 'broken' ? 'broken_bulb' : status || 'working';
 
     const { data, error } = await supabase
       .from('road_lamps')
@@ -54,9 +59,10 @@ export async function POST(request: NextRequest) {
         lamp_number,
         road_id,
         sub_road_id: sub_road_id || null,
+        sub_sub_road_id: sub_sub_road_id || null,
         address_id,
-        status: status || 'working',
-        arm_broken: status === 'broken' ? !!arm_broken : false
+        status: normalizedStatus,
+        arm_broken: normalizedStatus === 'broken_arm'
       })
       .select()
       .single();

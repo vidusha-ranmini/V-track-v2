@@ -45,9 +45,10 @@ CREATE TABLE IF NOT EXISTS addresses (
     member TEXT,
     road_id UUID REFERENCES roads(id) ON DELETE CASCADE,
     sub_road_id UUID REFERENCES sub_roads(id) ON DELETE CASCADE,
+    sub_sub_road_id UUID REFERENCES sub_sub_roads(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     is_deleted BOOLEAN DEFAULT FALSE,
-    UNIQUE(address, road_id, sub_road_id)
+    UNIQUE(address, road_id, sub_road_id, sub_sub_road_id)
 );
 
 -- Households table
@@ -112,6 +113,7 @@ CREATE TABLE IF NOT EXISTS road_lamps (
     lamp_number TEXT NOT NULL,
     road_id UUID REFERENCES roads(id) ON DELETE CASCADE,
     sub_road_id UUID REFERENCES sub_roads(id) ON DELETE CASCADE,
+    sub_sub_road_id UUID REFERENCES sub_sub_roads(id) ON DELETE CASCADE,
     address_id UUID REFERENCES addresses(id) ON DELETE CASCADE,
     status TEXT CHECK (status IN ('working', 'broken')) DEFAULT 'working',
     arm_broken BOOLEAN DEFAULT FALSE,
@@ -122,6 +124,25 @@ CREATE TABLE IF NOT EXISTS road_lamps (
 
 ALTER TABLE road_lamps
 ADD COLUMN IF NOT EXISTS arm_broken BOOLEAN DEFAULT FALSE;
+
+-- Migrate legacy 'broken' status to 'broken_bulb' and update check constraint
+-- Note: run these statements in your Supabase SQL editor for existing databases
+UPDATE road_lamps SET status = 'broken_bulb' WHERE status = 'broken';
+
+-- Drop any existing named constraint if present (name may vary in different DBs)
+ALTER TABLE road_lamps DROP CONSTRAINT IF EXISTS road_lamps_status_check;
+
+-- Add a stricter che
+
+--ck constraint with the expanded broken sub-statuses
+ALTER TABLE road_lamps
+    ADD CONSTRAINT road_lamps_status_check CHECK (status IN ('working', 'broken_bulb', 'broken_switch', 'broken_arm', 'broken_bracket'));
+
+ALTER TABLE addresses
+ADD COLUMN IF NOT EXISTS sub_sub_road_id UUID REFERENCES sub_sub_roads(id) ON DELETE CASCADE;
+
+ALTER TABLE road_lamps
+ADD COLUMN IF NOT EXISTS sub_sub_road_id UUID REFERENCES sub_sub_roads(id) ON DELETE CASCADE;
 
 -- Deletion Log table for audit trail
 CREATE TABLE IF NOT EXISTS deletion_log (
@@ -135,11 +156,13 @@ CREATE TABLE IF NOT EXISTS deletion_log (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_sub_roads_road_id ON sub_roads(road_id);
 CREATE INDEX IF NOT EXISTS idx_addresses_road_sub_road ON addresses(road_id, sub_road_id);
+CREATE INDEX IF NOT EXISTS idx_addresses_road_sub_sub ON addresses(road_id, sub_road_id, sub_sub_road_id);
 CREATE INDEX IF NOT EXISTS idx_households_address_id ON households(address_id);
 CREATE INDEX IF NOT EXISTS idx_members_household_id ON members(household_id);
 CREATE INDEX IF NOT EXISTS idx_members_nic ON members(nic);
 CREATE INDEX IF NOT EXISTS idx_businesses_location ON businesses(road_id, sub_road_id, address_id);
 CREATE INDEX IF NOT EXISTS idx_road_lamps_location ON road_lamps(road_id, sub_road_id, address_id);
+CREATE INDEX IF NOT EXISTS idx_road_lamps_road_sub_sub ON road_lamps(road_id, sub_road_id, sub_sub_road_id);
 
 -- Enable Row Level Security on all tables
 ALTER TABLE roads ENABLE ROW LEVEL SECURITY;

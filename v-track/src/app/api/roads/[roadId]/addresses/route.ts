@@ -16,6 +16,7 @@ export async function GET(
       .select('*')
       .eq('road_id', roadId)
       .is('sub_road_id', null)
+      .is('sub_sub_road_id', null)
       .eq('is_deleted', false)
       .order('address');
 
@@ -53,6 +54,7 @@ export async function POST(
       .eq('address', address)
       .eq('road_id', roadId)
       .is('sub_road_id', null)
+      .is('sub_sub_road_id', null)
       .eq('is_deleted', false)
       .maybeSingle();
 
@@ -66,6 +68,7 @@ export async function POST(
         address, 
         road_id: roadId, 
         sub_road_id: null,
+        sub_sub_road_id: null,
         member: member || null,
         is_deleted: false
       })

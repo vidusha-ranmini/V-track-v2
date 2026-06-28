@@ -14,19 +14,21 @@ export async function PATCH(
     const { status } = body;
     const { lampId } = await params;
 
-    // Validate status
-    if (!status || !['working', 'broken'].includes(status)) {
+    // Accept expanded status domain and normalize legacy 'broken'
+    const allowedStatuses = ['working', 'broken_bulb', 'broken_switch', 'broken_arm', 'broken_bracket'];
+    const normalizedStatus = status === 'broken' ? 'broken_bulb' : status;
+
+    if (!normalizedStatus || !allowedStatuses.includes(normalizedStatus)) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 
     const updatePayload: { status: string; arm_broken?: boolean; updated_at: string } = {
-      status,
+      status: normalizedStatus,
       updated_at: new Date().toISOString()
     };
 
-    if (status === 'working') {
-      updatePayload.arm_broken = false;
-    }
+    // Set arm_broken flag for compatibility when status indicates arm broken
+    updatePayload.arm_broken = normalizedStatus === 'broken_arm';
 
     const { data, error } = await supabase
       .from('road_lamps')

@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const roadId = searchParams.get('road_id');
     const subRoadId = searchParams.get('sub_road_id');
+    const subSubRoadId = searchParams.get('sub_sub_road_id');
     
     let query = supabase
       .from('addresses')
@@ -23,9 +24,13 @@ export async function GET(request: NextRequest) {
       // Handle sub_road_id filtering
       if (subRoadId) {
         query = query.eq('sub_road_id', subRoadId);
+        if (subSubRoadId) {
+          query = query.eq('sub_sub_road_id', subSubRoadId);
+        }
       } else {
         // If roadId is provided but subRoadId is not, get main road addresses (sub_road_id is null)
         query = query.is('sub_road_id', null);
+        query = query.is('sub_sub_road_id', null);
       }
     }
 
@@ -46,7 +51,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { address, road_id, sub_road_id, member } = body;
+    const { address, road_id, sub_road_id, sub_sub_road_id, member } = body;
 
     if (!address || !road_id) {
       return NextResponse.json({ error: 'Address and road_id are required' }, { status: 400 });
@@ -63,8 +68,14 @@ export async function POST(request: NextRequest) {
     // Handle sub_road_id filtering for duplicate check
     if (sub_road_id) {
       existingQuery = existingQuery.eq('sub_road_id', sub_road_id);
+      if (sub_sub_road_id) {
+        existingQuery = existingQuery.eq('sub_sub_road_id', sub_sub_road_id);
+      } else {
+        existingQuery = existingQuery.is('sub_sub_road_id', null);
+      }
     } else {
       existingQuery = existingQuery.is('sub_road_id', null);
+      existingQuery = existingQuery.is('sub_sub_road_id', null);
     }
 
     const { data: existing } = await existingQuery.maybeSingle();
@@ -79,6 +90,7 @@ export async function POST(request: NextRequest) {
         address, 
         road_id, 
         sub_road_id: sub_road_id || null,
+        sub_sub_road_id: sub_sub_road_id || null,
         member: member || null,
         is_deleted: false
       })
