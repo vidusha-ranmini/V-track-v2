@@ -120,6 +120,7 @@ export default function AddDetails() {
     }
   };
 
+
   useEffect(() => {
     const fetchRoads = async () => {
       try {
@@ -133,11 +134,7 @@ export default function AddDetails() {
       }
     };
 
-    fetchRoads();
-    fetchSubSubRoads();
-  }, []);
-
-  const fetchSubSubRoads = async () => {
+    const fetchSubSubRoads = async () => {
     try {
       const response = await fetch('/api/sub-sub-roads');
       if (response.ok) {
@@ -148,6 +145,11 @@ export default function AddDetails() {
       console.error('Error fetching sub-sub-roads:', error);
     }
   };
+
+    fetchRoads();
+    fetchSubSubRoads();
+  }, []);
+
 
   const fetchMainRoadAddresses = async (roadId: string) => {
     try {
