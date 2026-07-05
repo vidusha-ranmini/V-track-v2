@@ -11,7 +11,7 @@ interface RoadLamp {
   sub_road_id: string;
   sub_sub_road_id: string;
   address_id: string;
-  status: 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken';
+  status: 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken' | 'New Lamp';
   arm_broken?: boolean;
   created_at: string;
   updated_at: string;
@@ -66,7 +66,7 @@ export default function RoadLamps() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLamp, setEditingLamp] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' |  'New Lamp' | 'broken'>('all');
   const [roadFilter, setRoadFilter] = useState('');
   const [subRoadFilter, setSubRoadFilter] = useState('');
   const [subSubRoadFilter, setSubSubRoadFilter] = useState('');
@@ -77,7 +77,7 @@ export default function RoadLamps() {
     sub_road_id: '',
     sub_sub_road_id: '',
     address_id: '',
-    status: 'working' as 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken',
+    status: 'working' as 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken' | 'New Lamp',
     arm_broken: false
   });
 
@@ -560,6 +560,10 @@ export default function RoadLamps() {
             background-color: #fffbeb;
             color: #7c2d12;
           }
+          .status-new {
+            background-color: #fff7cc;
+            color: #92400e;
+          }
           @media print {
             body { margin: 0; }
             .stats { break-inside: avoid; }
@@ -613,13 +617,17 @@ export default function RoadLamps() {
                     lamp.status === 'working' ? 'status-working' :
                     lamp.status === 'broken_bulb' ? 'status-bulb' :
                     lamp.status === 'broken_switch' ? 'status-switch' :
-                    lamp.status === 'broken_arm' ? 'status-arm' : 'status-bracket'
+                    lamp.status === 'New Lamp' ? 'status-new' :
+                    lamp.status === 'broken_arm' ? 'status-arm' : 'status-bracket' 
+                     
                   }">
                     ${
                       lamp.status === 'working' ? 'Working' :
                       lamp.status === 'broken_bulb' ? 'Broken bulb' :
                       lamp.status === 'broken_switch' ? 'Broken switch' :
-                      lamp.status === 'broken_arm' ? 'Broken arm' : 'Broken bracket'
+                      lamp.status === 'New Lamp' ? 'New Lamp':
+                      lamp.status === 'broken_arm' ? 'Broken arm' : 'Broken bracket' 
+                      
                     }
                   </span>
                 </td>
@@ -726,7 +734,7 @@ export default function RoadLamps() {
             {/* Status Filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken')}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken' | 'New Lamp')}
               className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">All Status</option>
@@ -736,6 +744,7 @@ export default function RoadLamps() {
               <option value="broken_switch">Broken switch</option>
               <option value="broken_arm">Broken arm</option>
               <option value="broken_bracket">Broken bracket</option>
+              <option value="New Lamp">New Lamp</option>
             </select>
 
             {/* Road Filter */}
@@ -941,7 +950,7 @@ export default function RoadLamps() {
               <select
                 value={lampData.status}
                 onChange={(e) => {
-                  const status = e.target.value as 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken';
+                  const status = e.target.value as 'working' | 'broken_bulb' | 'broken_switch' | 'broken_arm' | 'broken_bracket' | 'broken' | 'New Lamp';
                   setLampData({
                     ...lampData,
                     status,
@@ -955,6 +964,7 @@ export default function RoadLamps() {
                 <option value="broken_switch">Broken switch</option>
                 <option value="broken_arm">Broken arm</option>
                 <option value="broken_bracket">Broken bracket</option>
+                <option value="New Lamp">New Lamp</option>
               </select>
             </div>
 
@@ -1014,7 +1024,8 @@ export default function RoadLamps() {
                         lamp.status === 'working' ? 'text-green-600' :
                         lamp.status === 'broken_bulb' ? 'text-red-600' :
                         lamp.status === 'broken_switch' ? 'text-indigo-600' :
-                        lamp.status === 'broken_arm' ? 'text-orange-600' : 'text-amber-700'
+                        lamp.status === 'broken_arm' ? 'text-orange-600' :
+                        lamp.status === 'New Lamp' ? 'text-yellow-600' : 'text-amber-700'
                       }`} />
                       <div>
                         <div className="text-sm font-medium text-gray-900">{lamp.lamp_number}</div>
@@ -1024,15 +1035,17 @@ export default function RoadLamps() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center justify-between">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        lamp.status === 'working' ? 'bg-green-100 text-green-800' :
-                        lamp.status === 'broken_bulb' ? 'bg-red-100 text-red-800' :
-                        lamp.status === 'broken_switch' ? 'bg-indigo-100 text-indigo-800' :
-                        lamp.status === 'broken_arm' ? 'bg-orange-100 text-orange-800' : 'bg-amber-100 text-amber-800'
+                          lamp.status === 'working' ? 'bg-green-100 text-green-800' :
+                           lamp.status === 'broken_bulb' ? 'bg-red-100 text-red-800' :
+                          lamp.status === 'broken_switch' ? 'bg-indigo-100 text-indigo-800' :
+                          lamp.status === 'broken_arm' ? 'bg-orange-100 text-orange-800' :
+                          lamp.status === 'New Lamp' ? 'bg-yellow-100 text-yellow-800' : 'bg-amber-100 text-amber-800'
                       }`}>
                         {lamp.status === 'working' ? 'WORKING' :
                          lamp.status === 'broken_bulb' ? 'BROKEN BULB' :
                          lamp.status === 'broken_switch' ? 'BROKEN SWITCH' :
-                         lamp.status === 'broken_arm' ? 'BROKEN ARM' : 'BROKEN BRACKET'}
+                         lamp.status === 'broken_arm' ? 'BROKEN ARM' :
+                         lamp.status === 'New Lamp' ? 'NEW LAMP' : 'BROKEN BRACKET'}
                       </span>
                       <button
                         onClick={() => toggleStatus(lamp.id, lamp.status)}
