@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 type SessionRole = 'admin' | 'road-manager';
 
 const encoder = new TextEncoder();
-const roadApiPrefixes = [
-  '/api/roads',
-  '/api/sub-roads',
-  '/api/sub-sub-roads',
-  '/api/addresses',
-  '/api/road-lamps',
+const roadManagerApiAccess = [
+  { prefix: '/api/road-development', methods: ['GET', 'POST', 'PUT', 'DELETE'] },
+  { prefix: '/api/road-lamps', methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] },
+  { prefix: '/api/roads', methods: ['GET'] },
+  { prefix: '/api/sub-roads', methods: ['GET'] },
+  { prefix: '/api/sub-sub-roads', methods: ['GET'] },
+  { prefix: '/api/addresses', methods: ['GET'] },
 ];
 
 function decodeBase64Url(value: string): Uint8Array | null {
@@ -100,7 +101,9 @@ export async function middleware(request: NextRequest) {
 
   if (
     role === 'road-manager' &&
-    !roadApiPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+    !roadManagerApiAccess.some(({ prefix, methods }) =>
+      (pathname === prefix || pathname.startsWith(`${prefix}/`)) && methods.includes(request.method)
+    )
   ) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }

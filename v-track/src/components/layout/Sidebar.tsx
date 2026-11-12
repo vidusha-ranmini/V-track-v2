@@ -31,7 +31,7 @@ export default function Sidebar({ user, activePage, onPageChange }: SidebarProps
     // { id: 'activity-logs', label: 'Activity Logs', icon: Activity },
   ];
   const visibleMenuItems = user.role === 'road-manager'
-    ? menuItems.filter((item) => item.id === 'road-details' || item.id === 'road-lamps')
+    ? menuItems.filter((item) => item.id === 'road-development' || item.id === 'road-lamps')
     : menuItems;
 
   const handleLogout = () => {
@@ -46,7 +46,7 @@ export default function Sidebar({ user, activePage, onPageChange }: SidebarProps
           Village Management
         </h1>
         <p className="text-sm text-gray-600 mt-1">
-          {user.role === 'admin' ? 'Administrator Panel' : 'Roads & Lamps Access'}
+          {user.role === 'admin' ? 'Administrator Panel' : 'Road Development & Lamps Access'}
         </p>
       </div>
       

@@ -16,11 +16,11 @@ type ActivePage = 'dashboard' | 'add-details' | 'view-details' | 'add-business' 
 
 export default function Dashboard({ user }: { user: AuthUser }) {
   const [activePage, setActivePage] = useState<ActivePage>(
-    user.role === 'road-manager' ? 'road-details' : 'dashboard'
+    user.role === 'road-manager' ? 'road-development' : 'dashboard'
   );
 
   const handlePageChange = (page: string) => {
-    if (user.role === 'road-manager' && page !== 'road-details' && page !== 'road-lamps') {
+    if (user.role === 'road-manager' && page !== 'road-development' && page !== 'road-lamps') {
       return;
     }
     setActivePage(page as ActivePage);
@@ -45,7 +45,7 @@ export default function Dashboard({ user }: { user: AuthUser }) {
       case 'activity-logs':
         return <ActivityLogs />;
       default:
-        return user.role === 'road-manager' ? <RoadDetails /> : <DashboardOverview />;
+        return user.role === 'road-manager' ? <RoadDevelopment /> : <DashboardOverview />;
     }
   };
 

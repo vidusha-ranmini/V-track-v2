@@ -16,6 +16,23 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Road Manager Login
+
+To enable a separate account limited to Road Details and Road Lamps, add these values to `.env.local`:
+
+```env
+ROAD_USER_USERNAME=road-operator
+ROAD_USER_PASSWORD_HASH=<bcrypt password hash>
+```
+
+Generate a bcrypt hash from the `v-track` directory with:
+
+```bash
+node -e "console.log(require('./generate-credentials').generatePasswordHash('replace-with-a-strong-password'))"
+```
+
+The account can access Road Development and Road Lamps. It can read road and address data needed by those modules, but only administrators can create, edit, or delete road structures. Other API modules remain restricted to administrators. Restart the Next.js server after changing environment variables.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
