@@ -3,20 +3,19 @@
 import { useEffect, useState } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 import Dashboard from '@/components/Dashboard';
-import { checkAuth } from '@/lib/auth';
+import { checkAuth, type AuthUser } from '@/lib/auth';
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        const isAuth = await checkAuth();
-        setIsAuthenticated(isAuth);
+        setUser(await checkAuth());
       } catch (error) {
         console.error('Auth check failed:', error);
-        setIsAuthenticated(false);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -35,10 +34,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {isAuthenticated ? (
-        <Dashboard />
+      {user ? (
+        <Dashboard user={user} />
       ) : (
-        <LoginForm onLoginSuccess={() => setIsAuthenticated(true)} />
+        <LoginForm onLoginSuccess={setUser} />
       )}
     </div>
   );

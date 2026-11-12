@@ -10,13 +10,19 @@ import RoadLamps from './infrastructure/RoadLamps';
 import RoadDetails from './infrastructure/RoadDetails';
 import { RoadDevelopment } from './infrastructure/RoadDevelopment';
 import ActivityLogs from './dashboard/ActivityLogs';
+import type { AuthUser } from '@/lib/auth';
 
 type ActivePage = 'dashboard' | 'add-details' | 'view-details' | 'add-business' | 'road-lamps' | 'road-details' | 'road-development' | 'activity-logs';
 
-export default function Dashboard() {
-  const [activePage, setActivePage] = useState<ActivePage>('dashboard');
+export default function Dashboard({ user }: { user: AuthUser }) {
+  const [activePage, setActivePage] = useState<ActivePage>(
+    user.role === 'road-manager' ? 'road-details' : 'dashboard'
+  );
 
   const handlePageChange = (page: string) => {
+    if (user.role === 'road-manager' && page !== 'road-details' && page !== 'road-lamps') {
+      return;
+    }
     setActivePage(page as ActivePage);
   };
 
@@ -39,13 +45,13 @@ export default function Dashboard() {
       case 'activity-logs':
         return <ActivityLogs />;
       default:
-        return <DashboardOverview />;
+        return user.role === 'road-manager' ? <RoadDetails /> : <DashboardOverview />;
     }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar activePage={activePage} onPageChange={handlePageChange} />
+      <Sidebar user={user} activePage={activePage} onPageChange={handlePageChange} />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {renderActivePage()}

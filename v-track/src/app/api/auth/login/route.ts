@@ -108,11 +108,19 @@ export async function POST(request: NextRequest) {
 
     let adminUsername = '';
     let adminPasswordHash = '';
+    let roadUsername = '';
+    let roadPasswordHash = '';
     let jwtSecret = '';
     try {
       adminUsername = getRequiredEnv('ADMIN_USERNAME');
       adminPasswordHash = getRequiredEnv('ADMIN_PASSWORD_HASH');
       jwtSecret = getRequiredEnv('JWT_SECRET');
+      roadUsername = process.env.ROAD_USER_USERNAME
+        ? normalizeEnvValue(process.env.ROAD_USER_USERNAME)
+        : '';
+      roadPasswordHash = process.env.ROAD_USER_PASSWORD_HASH
+        ? normalizeEnvValue(process.env.ROAD_USER_PASSWORD_HASH)
+        : '';
     } catch (configError) {
       console.error('Login configuration error:', configError);
       return NextResponse.json(
@@ -121,7 +129,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (jwtSecret.length < 32 || isPlaceholderHash(adminPasswordHash) || !isBcryptHash(adminPasswordHash)) {
+    if (
+      jwtSecret.length < 32 ||
+      isPlaceholderHash(adminPasswordHash) ||
+      !isBcryptHash(adminPasswordHash) ||
+      Boolean(roadUsername) !== Boolean(roadPasswordHash) ||
+      (roadPasswordHash && (isPlaceholderHash(roadPasswordHash) || !isBcryptHash(roadPasswordHash)))
+    ) {
       console.error('Login configuration error: invalid admin auth environment values');
       return NextResponse.json(
         { error: 'Authentication service is not configured' },
@@ -129,22 +143,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (username !== adminUsername) {
-      recordFailedAttempt(loginAttemptKey);
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
+    const isAdminLogin = username === adminUsername;
+    const isRoadUserLogin = !isAdminLogin && Boolean(roadUsername) && username === roadUsername;
+    const passwordHash = isAdminLogin
+      ? adminPasswordHash
+      : isRoadUserLogin
+        ? roadPasswordHash
+        : null;
     let isValidPassword = false;
-    try {
-      isValidPassword = await bcrypt.compare(password, adminPasswordHash);
-    } catch {
-      return NextResponse.json(
-        { error: 'Authentication system error' },
-        { status: 500 }
-      );
+    if (passwordHash) {
+      try {
+        isValidPassword = await bcrypt.compare(password, passwordHash);
+      } catch {
+        return NextResponse.json(
+          { error: 'Authentication system error' },
+          { status: 500 }
+        );
+      }
     }
 
     if (!isValidPassword) {
@@ -174,7 +189,11 @@ export async function POST(request: NextRequest) {
 
     clearFailedAttempts(loginAttemptKey);
 
-    const user = { username, isAdmin: true as const };
+    const user = {
+      username,
+      role: isAdminLogin ? 'admin' as const : 'road-manager' as const,
+      isAdmin: isAdminLogin,
+    };
     const token = jwt.sign(user, jwtSecret, { expiresIn: '24h' });
 
     const clientIP = getClientIP(request);

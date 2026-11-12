@@ -11,13 +11,15 @@ import {
   Construction,
   LogOut 
 } from 'lucide-react';
+import type { AuthUser } from '@/lib/auth';
 
 interface SidebarProps {
+  user: AuthUser;
   activePage: string;
   onPageChange: (page: string) => void;
 }
 
-export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
+export default function Sidebar({ user, activePage, onPageChange }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'add-details', label: 'Add Details', icon: UserPlus },
@@ -28,6 +30,9 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
     { id: 'road-development', label: 'Road Development', icon: Construction },
     // { id: 'activity-logs', label: 'Activity Logs', icon: Activity },
   ];
+  const visibleMenuItems = user.role === 'road-manager'
+    ? menuItems.filter((item) => item.id === 'road-details' || item.id === 'road-lamps')
+    : menuItems;
 
   const handleLogout = () => {
     logout();
@@ -40,11 +45,13 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
         <h1 className="text-xl font-bold text-gray-800">
           Village Management
         </h1>
-        <p className="text-sm text-gray-600 mt-1">Administrator Panel</p>
+        <p className="text-sm text-gray-600 mt-1">
+          {user.role === 'admin' ? 'Administrator Panel' : 'Roads & Lamps Access'}
+        </p>
       </div>
       
       <nav className="mt-6">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const IconComponent = item.icon;
           return (
             <button

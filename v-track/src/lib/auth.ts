@@ -52,7 +52,8 @@ function decodePayload(token: string): Record<string, unknown> | null {
 
 export interface AuthUser {
   username: string;
-  isAdmin: true;
+  role: 'admin' | 'road-manager';
+  isAdmin: boolean;
 }
 
 export async function verifyPassword(password: string): Promise<boolean> {
@@ -78,9 +79,19 @@ export function verifyToken(token: string): AuthUser | null {
 
     const username = payload.username;
     const isAdmin = payload.isAdmin;
+    const role = payload.role;
     const exp = payload.exp;
 
-    if (typeof username !== 'string' || isAdmin !== true) {
+    if (typeof username !== 'string') {
+      return null;
+    }
+
+    if (role === 'road-manager' && isAdmin === false) {
+      if (typeof exp === 'number' && Date.now() >= exp * 1000) return null;
+      return { username, role, isAdmin: false };
+    }
+
+    if (isAdmin !== true || (role !== undefined && role !== 'admin')) {
       return null;
     }
 
@@ -88,19 +99,19 @@ export function verifyToken(token: string): AuthUser | null {
       return null;
     }
 
-    return { username, isAdmin: true };
+    return { username, role: 'admin', isAdmin: true };
   } catch {
     return null;
   }
 }
 
-export async function checkAuth(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
+export async function checkAuth(): Promise<AuthUser | null> {
+  if (typeof window === 'undefined') return null;
 
   const token = localStorage.getItem('auth_token');
-  if (!token) return false;
+  if (!token) return null;
 
-  return verifyToken(token) !== null;
+  return verifyToken(token);
 }
 
 export function logout(): void {

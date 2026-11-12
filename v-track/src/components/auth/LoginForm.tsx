@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from 'react';
+import { verifyToken, type AuthUser } from '@/lib/auth';
 
 interface LoginFormProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (user: AuthUser) => void;
 }
 
 export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
@@ -18,29 +19,18 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     setError('');
 
     try {
-      console.log('🚀 Sending login request:', { username, password: '***' });
-      
-      const requestBody = JSON.stringify({ username, password });
-      console.log('📦 Request body:', requestBody);
-      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: requestBody,
+        body: JSON.stringify({ username, password }),
       });
-
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response headers:', Object.fromEntries(response.headers));
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('❌ Error response text:', errorText);
-        
         let errorData;
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          console.log('❌ Could not parse error response as JSON');
           setError('Server error: ' + errorText);
           return;
         }
@@ -50,12 +40,15 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       }
 
       const data = await response.json();
-      console.log('✅ Login success:', data);
-
+      const user = verifyToken(data.token);
+      if (!user) {
+        setError('Invalid authentication response');
+        return;
+      }
       localStorage.setItem('auth_token', data.token);
-      onLoginSuccess();
+      onLoginSuccess(user);
     } catch (error) {
-      console.error('💥 Login request error:', error);
+      console.error('Login request error:', error);
       setError('An error occurred. Please try again: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
@@ -70,7 +63,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             Village Data Management System
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Administrator Access Only
+            Authorized User Access
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
